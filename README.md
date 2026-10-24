@@ -1,7 +1,7 @@
 # Zentral-Hack
 
 ## Online link
-https://recycl-it-project.netlify.app/
+https://recycl-it-project.netlify.app/  <- link to the app, identical as running it locally. If issues with link contact us. On mobile every feature is present.
 
 ## About
 Recycl-It is a website that helps people find recycling stations and learn where they can dispose of different types of waste.
