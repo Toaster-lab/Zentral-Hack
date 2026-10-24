@@ -1,0 +1,222 @@
+[
+ {
+  "ts": 1792836000000,
+  "local": "2026-10-24T12:00:00+02:00",
+  "dayStart": 1792792800000,
+  "weekStart": 1792360800000,
+  "nextWeekStart": 1792969200000,
+  "prevWeekStart": 1791756000000,
+  "monthStart": 1790805600000,
+  "nextMonthStart": 1793487600000,
+  "prevMonthStart": 1788213600000
+ },
+ {
+  "ts": 1774745940000,
+  "local": "2026-03-29T01:59:00+01:00",
+  "dayStart": 1774738800000,
+  "weekStart": 1774220400000,
+  "nextWeekStart": 1774821600000,
+  "prevWeekStart": 1773615600000,
+  "monthStart": 1772319600000,
+  "nextMonthStart": 1774994400000,
+  "prevMonthStart": 1769900400000
+ },
+ {
+  "ts": 1774746000000,
+  "local": "2026-03-29T03:00:00+02:00",
+  "dayStart": 1774738800000,
+  "weekStart": 1774220400000,
+  "nextWeekStart": 1774821600000,
+  "prevWeekStart": 1773615600000,
+  "monthStart": 1772319600000,
+  "nextMonthStart": 1774994400000,
+  "prevMonthStart": 1769900400000
+ },
+ {
+  "ts": 1774738740000,
+  "local": "2026-03-28T23:59:00+01:00",
+  "dayStart": 1774652400000,
+  "weekStart": 1774220400000,
+  "nextWeekStart": 1774821600000,
+  "prevWeekStart": 1773615600000,
+  "monthStart": 1772319600000,
+  "nextMonthStart": 1774994400000,
+  "prevMonthStart": 1769900400000
+ },
+ {
+  "ts": 1774821600000,
+  "local": "2026-03-30T00:00:00+02:00",
+  "dayStart": 1774821600000,
+  "weekStart": 1774821600000,
+  "nextWeekStart": 1775426400000,
+  "prevWeekStart": 1774220400000,
+  "monthStart": 1772319600000,
+  "nextMonthStart": 1774994400000,
+  "prevMonthStart": 1769900400000
+ },
+ {
+  "ts": 1792884600000,
+  "local": "2026-10-25T01:30:00+02:00",
+  "dayStart": 1792879200000,
+  "weekStart": 1792360800000,
+  "nextWeekStart": 1792969200000,
+  "prevWeekStart": 1791756000000,
+  "monthStart": 1790805600000,
+  "nextMonthStart": 1793487600000,
+  "prevMonthStart": 1788213600000
+ },
+ {
+  "ts": 1792969140000,
+  "local": "2026-10-25T23:59:00+01:00",
+  "dayStart": 1792879200000,
+  "weekStart": 1792360800000,
+  "nextWeekStart": 1792969200000,
+  "prevWeekStart": 1791756000000,
+  "monthStart": 1790805600000,
+  "nextMonthStart": 1793487600000,
+  "prevMonthStart": 1788213600000
+ },
+ {
+  "ts": 1792969200000,
+  "local": "2026-10-26T00:00:00+01:00",
+  "dayStart": 1792969200000,
+  "weekStart": 1792969200000,
+  "nextWeekStart": 1793574000000,
+  "prevWeekStart": 1792360800000,
+  "monthStart": 1790805600000,
+  "nextMonthStart": 1793487600000,
+  "prevMonthStart": 1788213600000
+ },
+ {
+  "ts": 1761476400000,
+  "local": "2025-10-26T12:00:00+01:00",
+  "dayStart": 1761429600000,
+  "weekStart": 1760911200000,
+  "nextWeekStart": 1761519600000,
+  "prevWeekStart": 1760306400000,
+  "monthStart": 1759269600000,
+  "nextMonthStart": 1761951600000,
+  "prevMonthStart": 1756677600000
+ },
+ {
+  "ts": 1743328800000,
+  "local": "2025-03-30T12:00:00+02:00",
+  "dayStart": 1743289200000,
+  "weekStart": 1742770800000,
+  "nextWeekStart": 1743372000000,
+  "prevWeekStart": 1742166000000,
+  "monthStart": 1740783600000,
+  "nextMonthStart": 1743458400000,
+  "prevMonthStart": 1738364400000
+ },
+ {
+  "ts": 1798757940000,
+  "local": "2026-12-31T23:59:00+01:00",
+  "dayStart": 1798671600000,
+  "weekStart": 1798412400000,
+  "nextWeekStart": 1799017200000,
+  "prevWeekStart": 1797807600000,
+  "monthStart": 1796079600000,
+  "nextMonthStart": 1798758000000,
+  "prevMonthStart": 1793487600000
+ },
+ {
+  "ts": 1798758000000,
+  "local": "2027-01-01T00:00:00+01:00",
+  "dayStart": 1798758000000,
+  "weekStart": 1798412400000,
+  "nextWeekStart": 1799017200000,
+  "prevWeekStart": 1797807600000,
+  "monthStart": 1798758000000,
+  "nextMonthStart": 1801436400000,
+  "prevMonthStart": 1796079600000
+ },
+ {
+  "ts": 1772319540000,
+  "local": "2026-02-28T23:59:00+01:00",
+  "dayStart": 1772233200000,
+  "weekStart": 1771801200000,
+  "nextWeekStart": 1772406000000,
+  "prevWeekStart": 1771196400000,
+  "monthStart": 1769900400000,
+  "nextMonthStart": 1772319600000,
+  "prevMonthStart": 1767222000000
+ },
+ {
+  "ts": 1772319600000,
+  "local": "2026-03-01T00:00:00+01:00",
+  "dayStart": 1772319600000,
+  "weekStart": 1771801200000,
+  "nextWeekStart": 1772406000000,
+  "prevWeekStart": 1771196400000,
+  "monthStart": 1772319600000,
+  "nextMonthStart": 1774994400000,
+  "prevMonthStart": 1769900400000
+ },
+ {
+  "ts": 1767567600000,
+  "local": "2026-01-05T00:00:00+01:00",
+  "dayStart": 1767567600000,
+  "weekStart": 1767567600000,
+  "nextWeekStart": 1768172400000,
+  "prevWeekStart": 1766962800000,
+  "monthStart": 1767222000000,
+  "nextMonthStart": 1769900400000,
+  "prevMonthStart": 1764543600000
+ },
+ {
+  "ts": 1767567540000,
+  "local": "2026-01-04T23:59:00+01:00",
+  "dayStart": 1767481200000,
+  "weekStart": 1766962800000,
+  "nextWeekStart": 1767567600000,
+  "prevWeekStart": 1766358000000,
+  "monthStart": 1767222000000,
+  "nextMonthStart": 1769900400000,
+  "prevMonthStart": 1764543600000
+ },
+ {
+  "ts": 1790805540000,
+  "local": "2026-09-30T23:59:00+02:00",
+  "dayStart": 1790719200000,
+  "weekStart": 1790546400000,
+  "nextWeekStart": 1791151200000,
+  "prevWeekStart": 1789941600000,
+  "monthStart": 1788213600000,
+  "nextMonthStart": 1790805600000,
+  "prevMonthStart": 1785535200000
+ },
+ {
+  "ts": 1790805600000,
+  "local": "2026-10-01T00:00:00+02:00",
+  "dayStart": 1790805600000,
+  "weekStart": 1790546400000,
+  "nextWeekStart": 1791151200000,
+  "prevWeekStart": 1789941600000,
+  "monthStart": 1790805600000,
+  "nextMonthStart": 1793487600000,
+  "prevMonthStart": 1788213600000
+ },
+ {
+  "ts": 1774738800000,
+  "local": "2026-03-29T00:00:00+01:00",
+  "dayStart": 1774738800000,
+  "weekStart": 1774220400000,
+  "nextWeekStart": 1774821600000,
+  "prevWeekStart": 1773615600000,
+  "monthStart": 1772319600000,
+  "nextMonthStart": 1774994400000,
+  "prevMonthStart": 1769900400000
+ },
+ {
+  "ts": 1792879200000,
+  "local": "2026-10-25T00:00:00+02:00",
+  "dayStart": 1792879200000,
+  "weekStart": 1792360800000,
+  "nextWeekStart": 1792969200000,
+  "prevWeekStart": 1791756000000,
+  "monthStart": 1790805600000,
+  "nextMonthStart": 1793487600000,
+  "prevMonthStart": 1788213600000
+ }
+]

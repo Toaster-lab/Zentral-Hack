@@ -3,18 +3,24 @@
 // or 'live' (a real integration implemented in services/live.js). Flip one at a time as
 // real services are connected.
 import { defaultArea } from './data/areas.js';
+import { env } from './env.js';
+
+// Domains the RECYCL IT! server is authoritative for when the app is served by it.
+const srv = env.api ? 'live' : 'demo';
 
 export const config = {
-  appName: 'BubbleCycle',
+  appName: 'RECYCL IT!',
   providers: {
     locations: 'demo',    // public locations for the area (stations, bins)
     community: 'demo',    // submissions, reports, confirmations, admin review
     geocoding: 'demo',    // place / postcode -> coordinates
     products: 'demo',     // sustainable product discovery
     barcodes: 'demo',     // barcode -> product + packaging
-    receipts: 'demo',     // station receipt codes -> verified recycling
-    leaderboard: 'demo',  // other players' recycling counts
+    receipts: 'demo',     // station receipt codes -> verified recycling (with the server: checked there at submit time)
+    leaderboard: srv,     // other players' recycling counts
     social: 'demo',       // friends, requests, challenges (simulated people in demo mode)
+    checkins: srv,        // check-in submission and review
+    activity: srv,        // logs, points, redemptions
   },
   demoLatencyMs: [250, 700],
   defaultCenter: { ...defaultArea().center, label: defaultArea().name },
@@ -50,6 +56,23 @@ export const config = {
     maxPendingPerPerson: 5,
     duplicateRadiusM: { station: 60, bin: 20 },
     tempIssueHours: { bin_full: 24, damaged: 24 * 7 },
+  },
+  checkin: {
+    nearM: 75,
+    maxAccuracyM: 100,
+    largeTripItems: 40,
+    rapidCount: 3,
+    rapidWindowMin: 60,
+    maxSpeedKmh: 100,
+    dupeHamming: 4,
+    maxKeptPhotos: 5,
+  },
+  // "Confirm it's you" before logging. Uses the device's own screen-lock check (WebAuthn).
+  deviceAuth: {
+    timeoutMs: 60000,
+    // Prototype only: on devices/browsers with no real device confirmation, offer a clearly
+    // labelled simulated step so the flow can be demoed. Set to false for launch.
+    allowSimulation: true,
   },
   weeklyGoalDefault: 20,
 };

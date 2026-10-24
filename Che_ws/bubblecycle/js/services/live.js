@@ -2,6 +2,8 @@
 // Keep the same signatures and return shapes as demo.js / community.js. Switch a domain to
 // live in config.providers once its functions here are implemented.
 
+import { api } from './api.js';
+
 class NotConnected extends Error {
   constructor(what, hint) {
     super(`${what} isn’t connected yet. ${hint}`);
@@ -61,7 +63,14 @@ export const geocode = nc('Live place search', 'Connect a geocoder (swisstopo, N
 export const searchProducts = nc('Live product data', 'Requires a retailer product API agreement.');
 // lookupBarcode(code) -> { name, emoji?, components:[{ part, material, confirm?, options? }], source } | null
 export const lookupBarcode = nc('Live barcode data', 'Connect a product/packaging database.');
-// verifyReceipt(code) -> { valid:boolean }. Must be enforced server-side.
-export const verifyReceipt = nc('Receipt verification', 'Requires station/retailer verification.');
-// leaderboardPeers({ key, start, end }) -> [{ nickname, items, verified }]
-export const leaderboardPeers = nc('Live leaderboard', 'Requires a backend.');
+// verifyReceipt: with the RECYCL IT! server a receipt is checked when the log is submitted (POST api/activity),
+// by a trusted source only. The browser can't vouch for a receipt, so there is nothing to call here.
+export const verifyReceipt = nc('Receipt verification', 'Receipts are verified by the server when you submit a log.');
+// Check-ins are sent through services/activity.js (POST api/activity with kind: "checkin"); the server re-runs
+// the evidence rules and decides what counts. This stays for the interface only.
+export const submitCheckin = nc('Check-in review', 'Check-ins go through the RECYCL IT! server (services/activity.js).');
+// leaderboardPeers({ kind, offset }) -> [{ nickname, items, verified, isMe }], counted by the server from accepted activity only.
+export async function leaderboardPeers({ kind, offset = 0 }) {
+  const out = await api('GET', `leaderboard?period=${kind}&offset=${offset}`);
+  return out.rows;
+}

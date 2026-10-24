@@ -54,6 +54,7 @@ export const resetSocialDemo = () => provider('social').resetSocialDemo();
 export const geocode = (text) => provider('geocoding').geocode(text);
 export const searchProducts = (q) => provider('products').searchProducts(q);
 export const verifyReceipt = (code) => provider('receipts').verifyReceipt(code);
+export const submitCheckin = (payload) => provider('checkins').submitCheckin(payload);
 export const leaderboardPeers = (range) => provider('leaderboard').leaderboardPeers(range);
 
 export async function lookupBarcode(code, { allowOpenFoodFacts = false } = {}) {

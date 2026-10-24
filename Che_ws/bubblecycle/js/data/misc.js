@@ -4,9 +4,9 @@ export const REWARDS = [
   { id: 'badge-pet', kind: 'badge', name: 'PET bottle badge', emoji: '🧴', cost: 50, once: true, blurb: 'A badge for your profile.' },
   { id: 'badge-mapper', kind: 'badge', name: 'Map helper badge', emoji: '🗺️', cost: 40, once: true, blurb: 'For helping keep the map accurate.' },
   { id: 'badge-hero', kind: 'badge', name: 'Regular recycler badge', emoji: '🦸', cost: 120, once: true, blurb: 'For steady recyclers.' },
-  { id: 'disc-refill', kind: 'discount', name: '10 % off at “Refill Room”', emoji: '🫧', cost: 200, partner: 'Refill Room (fictional shop)', blurb: 'A made-up refill shop for this demo.' },
-  { id: 'voucher-cafe', kind: 'voucher', name: 'CHF 5 at “Leaf & Ladle” café', emoji: '☕', cost: 300, partner: 'Leaf & Ladle (fictional café)', blurb: 'A made-up café voucher for this demo.' },
-  { id: 'voucher-bottle', kind: 'voucher', name: 'Reusable bottle at “Bubble Market”', emoji: '🍶', cost: 500, partner: 'Bubble Market (fictional shop)', blurb: 'A made-up shop voucher for this demo.' },
+  { id: 'disc-refill', kind: 'discount', name: '10 % off at “Refill Room”', emoji: '', cost: 200, needsVerifiedItems: 5, partner: 'Refill Room (fictional shop)', blurb: 'A made-up refill shop for this demo.' },
+  { id: 'voucher-cafe', kind: 'voucher', name: 'CHF 5 at “Leaf & Ladle” café', emoji: '☕', cost: 300, needsVerifiedItems: 5, partner: 'Leaf & Ladle (fictional café)', blurb: 'A made-up café voucher for this demo.' },
+  { id: 'voucher-bottle', kind: 'voucher', name: 'Reusable bottle at “Bubble Market”', emoji: '🍶', cost: 500, needsVerifiedItems: 5, partner: 'Bubble Market (fictional shop)', blurb: 'A made-up shop voucher for this demo.' },
 ];
 
 // Demo receipt codes stand in for a real verification source (e.g. a station machine

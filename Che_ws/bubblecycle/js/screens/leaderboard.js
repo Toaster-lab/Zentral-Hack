@@ -5,6 +5,8 @@ import { periodRange, countInRange, buildLeaderboard } from '../logic/activity.j
 import { leaderboardPeers, isDemo } from '../services/index.js';
 import { navigate } from '../router.js';
 import { config } from '../config.js';
+import { env } from '../env.js';
+import { useAccount } from '../services/account.js';
 
 const MEDALS = {};
 
@@ -16,19 +18,21 @@ export default function Leaderboard() {
   const [state, setState] = useState({ status: 'loading', peers: [] });
   const [reload, setReload] = useState(0);
   const range = periodRange(kind, offset);
+  const account = useAccount();
 
   useEffect(() => {
     let alive = true;
     setState({ status: 'loading', peers: [] });
-    leaderboardPeers(range)
+    leaderboardPeers({ ...range, offset })
       .then((peers) => alive && setState({ status: 'ready', peers }))
       .catch((e) => alive && setState({ status: 'error', peers: [], error: e.message }));
     return () => { alive = false; };
   }, [range.key, reload]);
 
   const mine = countInRange(s.activities, range);
-  const optedIn = s.profile.leaderboardOptIn && s.profile.nickname;
-  const me = optedIn ? { nickname: s.profile.nickname, items: mine.items, verified: mine.verified, isMe: true } : null;
+  // With the server, the board (including your own row) is counted there; otherwise your row is added on this device.
+  const optedIn = env.api ? account.user?.leaderboardOptIn : s.profile.leaderboardOptIn && s.profile.nickname;
+  const me = optedIn && !env.api ? { nickname: s.profile.nickname, items: mine.items, verified: mine.verified, isMe: true } : null;
   const rows = state.status === 'ready' ? buildLeaderboard(state.peers, me, verifiedOnly) : [];
   const periodName = kind === 'week' ? (offset === 0 ? 'This week' : 'Last week') : (offset === 0 ? 'This month' : 'Last month');
 
@@ -72,10 +76,10 @@ export default function Leaderboard() {
       <summary><strong>How we keep it fair</strong></summary>
       <ul class="small">
         <li>Rankings use recycled item counts only. Points and redeemed rewards never affect your rank.</li>
-        <li>Max ${config.limits.maxItemsPerLog} items per material in one log, ${config.limits.maxItemsPerDay} items and ${config.limits.maxLogsPerDay} logs per day.</li>
-        <li>The same material and count logged again within ${config.limits.duplicateWindowMin} minutes is blocked as a likely duplicate.</li>
+        <li>Max ${config.limits.maxItemsPerLog} items per material in one log, ${config.limits.maxItemsPerDay} items and ${config.limits.maxLogsPerDay} logs per day. The same material and count again within ${config.limits.duplicateWindowMin} minutes is blocked as a likely duplicate.</li>
         <li>Self-reported items are shown separately from verified ones (receipt code). Use the toggle above to rank by verified items only.</li>
-        ${isDemo('leaderboard') && html`<li>Other players here are fictional demo players. In this demo, limits are enforced on your device; a real launch needs a server to enforce them.</li>`}
+        ${isDemo('leaderboard') && html`<li>Other players here are fictional demo players, and limits are checked on your device. Run the RECYCL IT! server to have them enforced there.</li>`}
+        ${!isDemo('leaderboard') && html`<li>Counts come from the server and include only activity it accepted. Check-ins held for review aren’t counted until they’re approved.</li>`}
       </ul>
     </details>
   </div>`;

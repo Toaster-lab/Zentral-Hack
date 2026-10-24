@@ -1,59 +1,64 @@
-"""Generate the app icons (green square with a white leaf) as PNGs, no libraries needed."""
-import os, struct, sys, zlib
+"""Builds the RECYCL IT! logo and app icons.
 
-ROOT = sys.argv[1]
-OUT = os.path.join(ROOT, 'icons')
-os.makedirs(OUT, exist_ok=True)
-BG = (31, 106, 67)
-FG = (255, 253, 248)
+    pip install pillow
+    python tools/make_icons.py <logo.png>     # first time, or when the logo changes: pass the full-size logo
+    python tools/make_icons.py                # regenerate the icons from icons/logo.png
 
-def inside_leaf(x, y):
-    # lens = intersection of two circles (centres (.3,.3) and (.7,.7), radius .4)
-    d1 = (x - 0.3) ** 2 + (y - 0.3) ** 2
-    d2 = (x - 0.7) ** 2 + (y - 0.7) ** 2
-    if d1 <= 0.16 and d2 <= 0.16:
-        return True
-    # short stem towards the lower left
-    t = ((x - 0.30) * (-0.08) + (y - 0.70) * 0.08) / 0.0128
-    if 0 <= t <= 1:
-        px, py = 0.30 - 0.08 * t, 0.70 + 0.08 * t
-        return (x - px) ** 2 + (y - py) ** 2 <= 0.0004
-    return False
+The logo is dark artwork on white, so it always sits on a white disc. The brand colour (orange #F2A33A) is the
+background around that disc. Dark ink on that orange has a contrast of 7.6:1; white text on it would only
+reach 2.1:1, so the app never puts white text on the orange.
+The icons are already generated and committed; Pillow is only needed to change them.
+"""
+import sys
+from pathlib import Path
 
-def png(size, path, rounded):
-    rows = []
-    ss = 2
-    for j in range(size):
-        row = bytearray([0])
-        for i in range(size):
-            cov = 0
-            for sj in range(ss):
-                for si in range(ss):
-                    x = (i + (si + .5) / ss) / size
-                    y = (j + (sj + .5) / ss) / size
-                    cov += inside_leaf(x, y)
-            a = cov / (ss * ss)
-            r = int(BG[0] + (FG[0] - BG[0]) * a)
-            g = int(BG[1] + (FG[1] - BG[1]) * a)
-            b = int(BG[2] + (FG[2] - BG[2]) * a)
-            alpha = 255
-            if rounded:  # corner transparency for non-maskable icons
-                cx = min(i, size - 1 - i) / size
-                cy = min(j, size - 1 - j) / size
-                rad = 0.18
-                if cx < rad and cy < rad and (rad - cx) ** 2 + (rad - cy) ** 2 > rad ** 2:
-                    alpha = 0
-            row += bytes((r, g, b, alpha))
-        rows.append(bytes(row))
-    raw = b''.join(rows)
-    def chunk(tag, data):
-        c = struct.pack('>I', len(data)) + tag + data
-        return c + struct.pack('>I', zlib.crc32(tag + data) & 0xffffffff)
-    data = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0)) + chunk(b'IDAT', zlib.compress(raw, 9)) + chunk(b'IEND', b'')
-    open(path, 'wb').write(data)
-    print('wrote', os.path.basename(path), size)
+from PIL import Image, ImageDraw
 
-png(192, os.path.join(OUT, 'icon-192.png'), True)
-png(512, os.path.join(OUT, 'icon-512.png'), True)
-png(512, os.path.join(OUT, 'icon-maskable-512.png'), False)
-png(180, os.path.join(OUT, 'apple-touch-icon.png'), False)
+ROOT = Path(__file__).resolve().parent.parent
+OUT = ROOT / 'icons'
+ORANGE = (242, 163, 58)  # #F2A33A, the brand colour
+SS = 4                    # supersampling for smooth edges
+
+
+def disc_logo(logo: Image.Image, diameter: int) -> Image.Image:
+    """The logo cropped to a circle (its content sits well inside the circle), white behind it."""
+    big = diameter * SS
+    img = logo.convert('RGB').resize((big, big), Image.LANCZOS)
+    mask = Image.new('L', (big, big), 0)
+    ImageDraw.Draw(mask).ellipse((0, 0, big - 1, big - 1), fill=255)
+    out = Image.new('RGBA', (big, big), (0, 0, 0, 0))
+    out.paste(img, (0, 0), mask)
+    return out.resize((diameter, diameter), Image.LANCZOS)
+
+
+def icon(logo: Image.Image, size: int, disc_fraction: float, corner: float) -> Image.Image:
+    base = Image.new('RGBA', (size, size), ORANGE + (255,))
+    d = round(size * disc_fraction)
+    disc = disc_logo(logo, d)
+    base.alpha_composite(disc, ((size - d) // 2, (size - d) // 2))
+    if corner:  # rounded corners for icons that are shown as they are
+        big = size * SS
+        mask = Image.new('L', (big, big), 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, big - 1, big - 1), radius=round(big * corner), fill=255)
+        mask = mask.resize((size, size), Image.LANCZOS)
+        base.putalpha(mask)
+    return base
+
+
+def main():
+    OUT.mkdir(exist_ok=True)
+    src = Path(sys.argv[1]) if len(sys.argv) > 1 else OUT / 'logo.png'
+    full = Image.open(src)
+    logo = full.convert('RGB')
+    logo512 = logo.resize((512, 512), Image.LANCZOS)
+    logo512.save(OUT / 'logo.png', optimize=True)            # used inside the app (cropped to a circle with CSS)
+    icon(logo512, 512, 0.84, 0.18).save(OUT / 'icon-512.png', optimize=True)
+    icon(logo512, 192, 0.84, 0.18).save(OUT / 'icon-192.png', optimize=True)
+    icon(logo512, 512, 0.62, 0).save(OUT / 'icon-maskable-512.png', optimize=True)   # inside the 80% safe zone
+    icon(logo512, 180, 0.84, 0).convert('RGB').save(OUT / 'apple-touch-icon.png', optimize=True)
+    for f in ('logo.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'):
+        print('wrote', f, (OUT / f).stat().st_size, 'bytes')
+
+
+if __name__ == '__main__':
+    main()

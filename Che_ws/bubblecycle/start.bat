@@ -1,5 +1,5 @@
 @echo off
-rem Double-click to start BubbleCycle. Needs Python 3 (https://www.python.org/downloads/).
+rem Double-click to start RECYCL IT!. Needs Python 3 (https://www.python.org/downloads/).
 cd /d "%~dp0"
 where py >nul 2>nul
 if %errorlevel%==0 (

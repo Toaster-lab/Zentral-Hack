@@ -15,34 +15,34 @@ const { maxItemsPerLog, maxLogsPerDay, maxItemsPerDay, duplicateWindowMin } = co
 // Returns { ok:false, error } or { ok:true, entries:[{ material, count, accepted }], accepted, capped }.
 export function evaluateLog(activities, entries, now = nowTs()) {
   const clean = entries.filter((e) => e.material && e.count > 0);
-  if (!clean.length) return { ok: false, error: 'Add at least one item to log.' };
+  if (!clean.length) return { ok: false, code: 'no_items', error: 'Add at least one item to log.' };
 
   for (const e of clean) {
-    if (!isCountable(e.material)) return { ok: false, error: `${MATERIALS[e.material]?.label || 'That material'} isn’t counted as an accepted recyclable item yet.` };
-    if (!Number.isInteger(e.count) || e.count < 1) return { ok: false, error: 'Item counts must be whole numbers.' };
-    if (e.count > maxItemsPerLog) return { ok: false, error: `You can log up to ${maxItemsPerLog} items per material at once. Split larger amounts into separate logs.` };
+    if (!isCountable(e.material)) return { ok: false, code: 'not_countable', error: `${MATERIALS[e.material]?.label || 'That material'} isn’t counted as an accepted recyclable item yet.` };
+    if (!Number.isInteger(e.count) || e.count < 1) return { ok: false, code: 'not_integer', error: 'Item counts must be whole numbers.' };
+    if (e.count > maxItemsPerLog) return { ok: false, code: 'too_many_per_log', error: `You can log up to ${maxItemsPerLog} items per material at once. Split larger amounts into separate logs.` };
   }
   const seen = new Set();
   for (const e of clean) {
-    if (seen.has(e.material)) return { ok: false, error: `${MATERIALS[e.material].label} appears twice — combine them into one line.` };
+    if (seen.has(e.material)) return { ok: false, code: 'duplicate_material', error: `${MATERIALS[e.material].label} appears twice — combine them into one line.` };
     seen.add(e.material);
   }
 
   const today = activities.filter((a) => a.ts >= startOfDay(now));
   const logsToday = new Set(today.map((a) => a.batchId)).size;
-  if (logsToday >= maxLogsPerDay) return { ok: false, error: `You’ve reached today’s limit of ${maxLogsPerDay} logs. You can log again tomorrow.` };
+  if (logsToday >= maxLogsPerDay) return { ok: false, code: 'daily_logs', error: `You’ve reached today’s limit of ${maxLogsPerDay} logs. You can log again tomorrow.` };
 
   const windowStart = now - duplicateWindowMin * 60000;
   for (const e of clean) {
     const dup = activities.find((a) => a.ts >= windowStart && a.material === e.material && a.count === e.count);
     if (dup) {
       const mins = Math.max(1, Math.round((now - dup.ts) / 60000));
-      return { ok: false, error: `This looks like a duplicate: you logged ${e.count} × ${MATERIALS[e.material].label.toLowerCase()} ${mins} min ago. If it’s really new, wait a few minutes or change the count.` };
+      return { ok: false, code: 'duplicate', error: `This looks like a duplicate: you logged ${e.count} × ${MATERIALS[e.material].label.toLowerCase()} ${mins} min ago. If it’s really new, wait a few minutes or change the count.` };
     }
   }
 
   let remaining = maxItemsPerDay - today.reduce((s, a) => s + a.accepted, 0);
-  if (remaining <= 0) return { ok: false, error: `You’ve hit the daily cap of ${maxItemsPerDay} items. Anything more can be logged tomorrow.` };
+  if (remaining <= 0) return { ok: false, code: 'daily_items', error: `You’ve hit the daily cap of ${maxItemsPerDay} items. Anything more can be logged tomorrow.` };
   let capped = false;
   const out = clean.map((e) => {
     const accepted = Math.min(e.count, Math.max(0, remaining));

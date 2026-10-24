@@ -1,0 +1,9 @@
+[
+  {"id": "badge-glass", "kind": "badge", "name": "Glass badge", "cost": 50, "once": true},
+  {"id": "badge-pet", "kind": "badge", "name": "PET bottle badge", "cost": 50, "once": true},
+  {"id": "badge-mapper", "kind": "badge", "name": "Map helper badge", "cost": 40, "once": true},
+  {"id": "badge-hero", "kind": "badge", "name": "Regular recycler badge", "cost": 120, "once": true},
+  {"id": "disc-refill", "kind": "discount", "name": "10 % off at “Refill Room”", "cost": 200, "needsVerifiedItems": 5},
+  {"id": "voucher-cafe", "kind": "voucher", "name": "CHF 5 at “Leaf & Ladle” café", "cost": 300, "needsVerifiedItems": 5},
+  {"id": "voucher-bottle", "kind": "voucher", "name": "Reusable bottle at “Bubble Market”", "cost": 500, "needsVerifiedItems": 5}
+]

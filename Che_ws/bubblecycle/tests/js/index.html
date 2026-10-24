@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>RECYCL IT! unit tests</title></head>
+<body>
+  <h1>RECYCL IT! unit tests</h1>
+  <pre id="out">Running…</pre>
+  <script type="module">
+    import { run } from './lib.js';
+    await import('./logic.test.js');
+    await import('./store.test.js');
+    const results = await run();
+    window.__results = results;
+    const failed = results.filter((r) => !r.ok);
+    document.getElementById('out').textContent =
+      results.map((r) => `${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.ok ? '' : `\n      ${r.error}`}`).join('\n') +
+      `\n\n${results.length - failed.length} passed, ${failed.length} failed`;
+    window.__done = true;
+  </script>
+</body>
+</html>

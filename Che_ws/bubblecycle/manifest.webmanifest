@@ -1,13 +1,13 @@
 {
-  "name": "BubbleCycle",
-  "short_name": "BubbleCycle",
+  "name": "RECYCL IT!",
+  "short_name": "RECYCL IT!",
   "description": "Recycling points, scanner and sustainable shopping for Rotkreuz. Demo.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#f6f2ea",
-  "theme_color": "#1f6a43",
+  "theme_color": "#f2a33a",
   "lang": "en",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

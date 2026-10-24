@@ -1,8 +1,9 @@
-import { html, render } from './lib.js';
+import { html, render, useEffect } from './lib.js';
 import { useRoute, navigate } from './router.js';
 import { Icon, ToastHost, Avatar } from './ui.js';
 import { useStore } from './store.js';
 import { LogSheetHost } from './screens/logsheet.js';
+import { CheckInHost } from './screens/checkin.js';
 import Home from './screens/home.js';
 import MapScreen from './screens/map.js';
 import Scan from './screens/scan.js';
@@ -17,8 +18,15 @@ import Admin from './screens/admin.js';
 import Social from './screens/social.js';
 import Collection from './screens/collection.js';
 import Quests from './screens/quests.js';
+import Dev from './screens/dev.js';
+import Calendar from './screens/calendar.js';
+import { SignInHost } from './screens/account.js';
+import { OfflineStrip, OutboxBanner, UpdateBanner } from './screens/banners.js';
+import { env } from './env.js';
+import { useAccount, loadAccount } from './services/account.js';
+import { syncFromServer } from './services/activity.js';
 
-const SCREENS = { home: Home, map: MapScreen, scan: Scan, discover: Discover, profile: Profile, rewards: Rewards, leaderboard: Leaderboard, activity: Activity, add: AddPlace, contributions: Contributions, admin: Admin, social: Social, collection: Collection, quests: Quests };
+const SCREENS = { home: Home, map: MapScreen, scan: Scan, discover: Discover, profile: Profile, rewards: Rewards, leaderboard: Leaderboard, activity: Activity, add: AddPlace, contributions: Contributions, admin: Admin, social: Social, collection: Collection, quests: Quests, dev: Dev, calendar: Calendar };
 
 // Profile now lives in the avatar button (top right) so the bar stays uncrowded.
 const TABS = [
@@ -28,7 +36,7 @@ const TABS = [
   { name: 'discover', label: 'Discover', icon: 'sparkle' },
   { name: 'social', label: 'Social', icon: 'users' },
 ];
-const PROFILE_ROUTES = ['profile', 'rewards', 'leaderboard', 'activity', 'contributions', 'admin', 'collection', 'quests'];
+const PROFILE_ROUTES = ['profile', 'rewards', 'leaderboard', 'activity', 'contributions', 'admin', 'collection', 'quests', 'dev', 'calendar'];
 
 function App() {
   const route = useRoute();
@@ -36,15 +44,30 @@ function App() {
   const Screen = SCREENS[route.name];
   const onProfile = PROFILE_ROUTES.includes(route.name);
   const avatar = s.social.enabled ? s.social.avatar : null;
+  const account = useAccount();
+
+  // With the server: find out who is signed in, and keep the local copy of their data fresh.
+  useEffect(() => {
+    if (!env.api) return undefined;
+    loadAccount();
+    const refresh = () => { if (!document.hidden) loadAccount(); };
+    window.addEventListener('online', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { window.removeEventListener('online', refresh); document.removeEventListener('visibilitychange', refresh); };
+  }, []);
+  useEffect(() => { if (env.api && account.status === 'signedIn') syncFromServer().catch(() => {}); }, [account.status]);
   return html`
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="app-bar">
-      <button class="brand" onClick=${() => navigate('home')} aria-label="BubbleCycle home"><span class="brand-bubble" aria-hidden="true"></span>BubbleCycle</button>
+      <button class="brand" onClick=${() => navigate('home')} aria-label="RECYCL IT! home"><img class="brand-logo" src="icons/logo.png" alt="" width="40" height="40" /><span class="brand-name">RECYCL IT!</span></button>
       <button class=${`avatar-btn ${onProfile ? 'active' : ''}`} onClick=${() => navigate('profile')} aria-label="Profile, rewards and settings" aria-current=${route.name === 'profile' ? 'page' : undefined}>
         ${avatar ? html`<${Avatar} avatar=${avatar} size=${40} />` : html`<span class="avatar-bubble tone-mint" style="width:40px;height:40px"><${Icon} name="user" size=${22} /></span>`}
       </button>
     </header>
-    <main id="main" class="app-main">
+    <main id="main" class="app-main" tabindex="-1">
+      <${UpdateBanner} route=${route.name} />
+      <${OfflineStrip} />
+      <${OutboxBanner} route=${route.name} />
       <${Screen} key=${route.name + route.params.toString()} params=${route.params} />
     </main>
     <nav class="bottom-nav" aria-label="Main">
@@ -58,6 +81,8 @@ function App() {
       })}
     </nav>
     <${LogSheetHost} />
+    <${CheckInHost} />
+    <${SignInHost} />
     <${ToastHost} />
   `;
 }

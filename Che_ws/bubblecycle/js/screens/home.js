@@ -5,9 +5,12 @@ import { navigate } from '../router.js';
 import { periodRange, countInRange } from '../logic/activity.js';
 import { TIPS } from '../data/misc.js';
 import { openLogSheet } from './logsheet.js';
+import { openCheckIn } from './checkin.js';
 import { ReminderBanner } from './streaks.js';
+import { CollectionReminder } from './calendar.js';
 import { zParts, startOfDayZ } from '../logic/zurich.js';
-import { questStatuses } from '../logic/quests.js';
+import { questStatuses, SERVER_QUESTS } from '../logic/quests.js';
+import { env } from '../env.js';
 import { BOTTLEDEX } from '../data/bottledex.js';
 import { nowTs } from '../logic/clock.js';
 
@@ -32,7 +35,7 @@ export default function Home() {
   const points = getBalance();
   const tip = TIPS[Math.floor(startOfDayZ(nowTs()) / 86400000) % TIPS.length];
   const name = s.profile.nickname;
-  const quests = questStatuses(s);
+  const quests = questStatuses(s, undefined, env.api ? SERVER_QUESTS : null);
   const dexFound = BOTTLEDEX.filter((e) => s.collection[e.id]).length;
 
   return html`<div class="screen home">
@@ -42,10 +45,11 @@ export default function Home() {
     </header>
 
     <${ReminderBanner} />
+    <${CollectionReminder} />
     ${!storageOk && html`<p class="note tone-peach" role="alert"><${Icon} name="alert" size=${18} /> <span>Your browser is blocking local storage, so what you log won’t be saved after you close the app. Allow site data in your browser settings to keep it.</span></p>`}
 
     ${!s.profile.welcomeDismissed && html`<div class="note"><div>
-      <p>BubbleCycle is a demo for Rotkreuz. Some places and products are sample data, and what you log stays on this device.</p>
+      <p>RECYCL IT! is a demo for Rotkreuz. Some places and products are sample data, and ${env.api ? 'what you log is kept on the RECYCL IT! server for your account.' : 'what you log stays on this device.'}</p>
       <p class="row gap-sm" style="margin-top:6px"><button class="link-btn" onClick=${() => { updateProfile({ welcomeDismissed: true }); navigate('profile'); }}>Set up your profile</button><button class="link-btn" onClick=${() => updateProfile({ welcomeDismissed: true })}>Dismiss</button></p>
     </div></div>`}
 
@@ -59,6 +63,7 @@ export default function Home() {
           <p class="lead">${items === 0 ? 'Nothing logged yet this week' : `You logged ${items} item${items === 1 ? '' : 's'} this week`}</p>
           <p class="muted small">${items >= goal ? 'You’ve reached your goal.' : `${goal - items} to go for your goal of ${goal}.`}${items > 0 ? ` ${verified} verified, ${items - verified} self-reported.` : ''}</p>
           <button class="btn btn-primary btn-sm" style="align-self:flex-start" onClick=${() => openLogSheet()}><${Icon} name="plus" size=${18} /> Log recycling</button>
+          <button class="btn btn-ghost btn-sm" style="align-self:flex-start" onClick=${() => openCheckIn()}><${Icon} name="locate" size=${18} /> Check in at a station</button>
         </div>
       </div>
     </section>

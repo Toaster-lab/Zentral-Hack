@@ -1,0 +1,33 @@
+# Example Render blueprint for an HTTPS staging service. Nothing is deployed until you connect the repository
+# and approve it in Render; autoDeploy is off so a push never publishes by itself.
+# Set the secret values in the Render dashboard, not in this file.
+services:
+  - type: web
+    name: bubblecycle-staging
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    disk:
+      name: bubblecycle-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: BC_MODE
+        value: demo            # use "live" only with real receipt and reward partners
+      - key: BC_ORIGIN
+        sync: false            # https://<your-service>.onrender.com
+      - key: BC_RP_ID
+        sync: false            # <your-service>.onrender.com
+      - key: BC_TRUST_PROXY
+        value: "1"
+      - key: BC_ADMIN_TOKEN
+        sync: false
+      - key: BC_RECEIPT_SECRET
+        sync: false
+      - key: BC_DB
+        value: /data/bubblecycle.db
+      - key: BC_HOST
+        value: 0.0.0.0
+      - key: BC_PORT
+        value: "8080"

@@ -1,6 +1,6 @@
 import { useEffect, useState } from './lib.js';
 
-export const ROUTES = ['home', 'map', 'scan', 'discover', 'profile', 'rewards', 'leaderboard', 'activity', 'add', 'contributions', 'admin', 'social', 'collection', 'quests'];
+export const ROUTES = ['home', 'map', 'scan', 'discover', 'profile', 'rewards', 'leaderboard', 'activity', 'add', 'contributions', 'admin', 'social', 'collection', 'quests', 'dev', 'calendar'];
 
 function parse() {
   const [path, qs] = location.hash.replace(/^#\/?/, '').split('?');

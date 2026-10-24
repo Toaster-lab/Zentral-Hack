@@ -11,6 +11,7 @@ import { OSM_SNAPSHOT_DATE } from '../data/locations-seed.js';
 import { AREAS } from '../data/areas.js';
 import { fmtKm, relTime } from '../utils.js';
 import { openLogSheet } from './logsheet.js';
+import { openCheckIn } from './checkin.js';
 
 const MATERIAL_CHOICES = [...STATION_FILTERS, 'green_waste'];
 
@@ -129,6 +130,7 @@ export function PlaceSheet({ loc, onClose, userPos, onChanged }) {
           <a class="btn btn-ghost" href=${directionsUrl(loc, userPos)} target="_blank" rel="noopener noreferrer"><${Icon} name="directions" /> Directions</a>
           ${isStation && html`<button class="btn btn-primary" onClick=${() => { onClose(); openLogSheet({ stationId: loc.id, stationName: loc.name, entries: loc.materials.length ? [{ material: loc.materials.find((m) => m !== 'green_waste') || null, count: 1 }].filter((e) => e.material) : [] }); }}><${Icon} name="plus" /> Log here</button>`}
         </div>
+        ${isStation && html`<button class="btn btn-ghost btn-block" onClick=${() => { onClose(); openCheckIn({ station: loc, materials: [] }); }}><${Icon} name="locate" /> Check in here (adds location evidence)</button>`}
         <button class="btn btn-ghost btn-block" disabled=${busy} onClick=${confirm}><${Icon} name="check" /> Yes, it’s still here</button>
         <div class="row gap">
           <button class="btn btn-ghost btn-sm" onClick=${() => { setMsg(null); setMode('correct'); }}><${Icon} name="edit" size=${18} /> Suggest a correction</button>

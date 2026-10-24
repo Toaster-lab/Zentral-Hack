@@ -42,6 +42,11 @@ export async function lookupBarcode(code) {
   return BARCODES[code] || null;
 }
 
+export async function submitCheckin(payload) {
+  await simulate();
+  return { received: true, payload };
+}
+
 export async function verifyReceipt(code) {
   await simulate();
   return { valid: DEMO_RECEIPT_CODES.includes(code.trim().toUpperCase()) };

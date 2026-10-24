@@ -1,4 +1,4 @@
-"""Local server for BubbleCycle. Needs only Python 3 (no packages).
+"""Local server for RECYCL IT!. Needs only Python 3 (no packages).
 
     python serve.py            start on http://localhost:5173 and open the browser
     python serve.py 8080       use another port
@@ -8,6 +8,9 @@
 The app is plain HTML, CSS and JavaScript with its libraries bundled in ./vendor, so there is
 nothing to install or build. It must be opened through a server (not by double-clicking
 index.html): browsers block ES modules on file:// pages.
+
+This is the demo server: everything runs on the device. To try the server-enforced version (accounts, points and
+rewards kept on a server), run `python -m server` instead; see the README.
 
 Camera scanning and "use my location" only work on https or http://localhost. With --lan,
 other devices on your network can open the app, but those two features will be blocked there.
@@ -19,8 +22,11 @@ import sys
 import threading
 import webbrowser
 from functools import partial
+from pathlib import Path
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, ROOT)
+from server import precache  # noqa: E402  (pure standard library: the list of files the service worker stores)
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
 FLAGS = {a for a in sys.argv[1:] if a.startswith('--')}
 START_PORT = int(ARGS[0]) if ARGS else 5173
@@ -34,6 +40,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2',
         '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json',
     }
+
+    def do_GET(self):
+        # The service worker's file list is generated from the files on disk, so it can never be out of date here.
+        if self.path.split('?')[0] == '/sw-manifest.js':
+            data = precache.script(Path(ROOT)).encode()
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/javascript')
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
+        super().do_GET()
 
     def end_headers(self):
         # Always fetch fresh app files; the service worker keeps an offline copy.
@@ -67,7 +85,7 @@ if __name__ == '__main__':
     handler = partial(Handler, directory=ROOT)
     with http.server.ThreadingHTTPServer((HOST, port), handler) as httpd:
         url = f'http://localhost:{port}'
-        print(f'\n  BubbleCycle is running at {url}\n  Press Ctrl+C to stop.\n')
+        print(f'\n  RECYCL IT! is running at {url}\n  Press Ctrl+C to stop.\n')
         if '--lan' in FLAGS and lan_address():
             print(f'  On your network: http://{lan_address()}:{port}  (camera and location need https there)\n')
         if '--no-open' not in FLAGS:

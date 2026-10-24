@@ -1,19 +1,36 @@
-import { html } from '../lib.js';
+import { html, useState } from '../lib.js';
 import { Header, Icon, toast } from '../ui.js';
 import { useStore, claimQuest } from '../store.js';
-import { questStatuses } from '../logic/quests.js';
+import { questStatuses, SERVER_QUESTS } from '../logic/quests.js';
 import { timeLeft } from '../logic/zurich.js';
 import { nowTs } from '../logic/clock.js';
 import { navigate } from '../router.js';
+import { env } from '../env.js';
+import { requireSignIn } from './account.js';
+import { claimQuestOnServer } from '../services/activity.js';
 
 export default function Quests() {
   const s = useStore();
-  const { range, list, claimable } = questStatuses(s);
+  // With the server, only quests it can verify from its own records can be claimed.
+  const { range, list, claimable } = questStatuses(s, undefined, env.api ? SERVER_QUESTS : null);
   const done = list.filter((q) => q.done).length;
+  const [claiming, setClaiming] = useState('');
 
-  function claim(q) {
-    const r = claimQuest({ claimId: q.claimId, points: q.points, title: q.title });
-    toast(r.ok ? `Claimed ${q.points} points` : r.error);
+  async function claim(q) {
+    if (claiming) return;
+    setClaiming(q.id);
+    try {
+      if (env.api) {
+        if (!(await requireSignIn())) return;
+        await claimQuestOnServer(q.claimId);
+        toast(`Claimed ${q.points} points`);
+      } else {
+        const r = claimQuest({ claimId: q.claimId, points: q.points, title: q.title });
+        toast(r.ok ? `Claimed ${q.points} points` : r.error);
+      }
+    } catch (e) {
+      toast(e.message, 'peach');
+    } finally { setClaiming(''); }
   }
 
   return html`<div class="screen quests-screen">
@@ -37,11 +54,13 @@ export default function Quests() {
         <span class="quest-side">
           <strong class="cost">+${q.points}</strong>
           ${q.claimed ? html`<span class="tag tag-verified">Claimed</span>`
-            : q.done ? html`<button class="btn btn-primary btn-sm" onClick=${() => claim(q)}>Claim</button>`
+            : q.done ? html`<button class="btn btn-primary btn-sm" disabled=${!!claiming} onClick=${() => claim(q)}>Claim</button>`
             : html`<span class="tag">In progress</span>`}
         </span>
       </div>`)}
     </div>
+
+    ${env.api && html`<p class="muted small">Quests about scanning, the Bottledex and helping the map stay on this device for now, so they don’t pay points here.</p>`}
 
     <div class="list">
       <button class="list-row" onClick=${() => navigate('collection')}><${Icon} name="leaf" size=${22} /><span class="grow"><span class="row-title block">Bottledex</span><span class="row-sub">Find container types by scanning</span></span><${Icon} name="chevron" size=${20} /></button>

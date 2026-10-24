@@ -1,13 +1,24 @@
-# BubbleCycle 🫧
+# RECYCL IT! 
 
-A friendly, mobile-first recycling and sustainable-shopping MVP for Switzerland.
-Find recycling stations, discover treats with honest sustainability info, scan packaging
-for recycling instructions, log recycling, earn points, redeem demo rewards and climb a
-fair leaderboard.
+A friendly, mobile-first recycling and sustainable-shopping app for Rotkreuz (Risch, Switzerland). Find recycling stations, scan packaging
+for recycling instructions, log recycling or check in at a station, earn points, redeem demo rewards, climb a fair leaderboard, and see
+when waste is collected.
+
+It runs in two ways, and the difference matters:
+
+| | **On-device demo** (`python serve.py`) | **With the server** (`python -m server`) |
+|---|---|---|
+| Needs | Python 3 only | Python 3 and one package (`cryptography`) |
+| Who decides what counts | The app on your phone | The server |
+| Accounts | None | A passkey per account (no email, no password) |
+| Good for | Trying the app, design work, demos | Real phone testing, staging, and anything that must not be editable by users |
+
+In the on-device demo, anyone can edit their own browser storage and give themselves points. That is fine for a demo and is why every
+limit and reward check also exists on the server. Everything marked "Demo" is sample data.
 
 ## Run it
 
-You need **Python 3** (https://www.python.org/downloads/). Nothing else: no Node, no build step, no packages.
+**On-device demo.** You need **Python 3** (https://www.python.org/downloads/). Nothing else: no Node, no build step, no packages.
 All libraries and fonts are bundled in `vendor/`, so the app runs offline after its first load.
 
 | Platform | How |
@@ -17,84 +28,175 @@ All libraries and fonts are bundled in `vendor/`, so the app runs offline after 
 | Linux | `./start.sh` (first time: `chmod +x start.sh`) |
 | Any | `python serve.py` (options: a port number, `--no-open`, `--lan`) |
 
-It opens http://localhost:5173 in your browser. Press Ctrl+C in the console window to stop. Don’t double-click
-`index.html` itself: browsers block ES modules on `file://` pages.
+It opens http://localhost:5173. Press Ctrl+C in the console window to stop. Don't double-click `index.html`: browsers block ES modules
+on `file://` pages.
 
-**Install it like an app.** In Chrome or Edge use the install icon in the address bar (or Profile › Install). On a phone, use
-“Add to Home screen”. The service worker keeps an offline copy; map tiles and the optional Open Food Facts lookup still need a connection.
+**With the server** (accounts, points and rewards kept server-side):
 
-**Camera and location** work on `http://localhost` and on `https`. With `python serve.py --lan` other devices on your network can open
-the app, but browsers block the camera and location on plain `http` there; to use those on a phone, host the folder on any HTTPS static host
-(Netlify, Vercel, GitHub Pages, Cloudflare Pages…): it’s just static files.
+```
+pip install -r requirements.txt
+python -m server              # http://localhost:5174, demo mode
+```
 
-**Your data** lives in your browser’s storage for that address (`localhost:5173`). Using another port or browser starts fresh.
+Full setup, environment variables, the review command and HTTPS staging are in [docs/STAGING.md](docs/STAGING.md). Testing on real
+phones: [docs/PHONE-TESTING.md](docs/PHONE-TESTING.md).
 
-**Updating the bundled libraries** (optional, needs internet): `python tools/vendor.py .` re-downloads the pinned versions into `vendor/`.
-`python tools/make_icons.py .` regenerates the icons.
+**Install it like an app.** In Chrome or Edge use the install icon in the address bar (or Profile › Install). On a phone, use "Add to
+Home screen". **Camera, location and passkeys** need `http://localhost` or `https`; over plain `http` on your network (`--lan`) the
+browser blocks them.
 
-## Stack
+**Your data** lives in your browser's storage for that address. The on-device demo, the demo server and the live server each use a
+separate storage key, so their balances never mix.
 
-- **Preact + htm** (bundled in `vendor/`): React-style components, no bundler.
-- **Leaflet** (bundled) + OpenStreetMap tiles for the map.
-- **BarcodeDetector API** for camera scanning, falling back to **ZXing** (bundled, loaded on demand) in
-  browsers without it; manual entry always works.
-- **localStorage** for all user data (nothing leaves the device).
+## What you can do
 
-## Project layout
+- **Home:** this week's progress, shortcuts, the next quests, and (if you switch it on) a note the day before a collection.
+- **Map:** real OpenStreetMap stations and bins for Rotkreuz plus a few labelled demo stations; hours, accepted materials, directions;
+  add a missing place, confirm one is still there, report a problem (see "Community map" below).
+- **Scan:** read a barcode with the camera (or type it) and see how each part of the packaging is recycled. Add barcodes the database
+  doesn't know.
+- **Discover:** find a snack or drink by what you say you want, with diet and allergen filters and honest packaging notes.
+- **Log recycling:** choose materials and counts, optionally add a station receipt code. You confirm it's you as the last step.
+- **Check in at a station:** adds evidence to a log (a one-time "is this device near the station?" check and an optional photo). Anything
+  unusual is held for a quick look instead of being counted straight away, and you can add a note or withdraw it.
+- **Rewards:** spend points on demo badges and vouchers; spending points never changes your leaderboard rank.
+- **Leaderboard:** weekly or monthly, ranked by accepted items (not points), opt-in with a nickname.
+- **Activity:** your log, points history, check-ins and anything saved offline that hasn't been sent.
+- **Quests, Bottledex, Social:** optional monthly goals, a collection of container types, and friends/challenges/streaks (simulated people).
+- **Collection calendar:** upcoming collections for Rotkreuz with material filters, an optional in-app reminder and an `.ics` export.
+- **Profile:** account (server version), nickname, municipality, weekly goal, privacy, install. Developer tools are not part of the app's
+  screens: they live at `#/dev` and do nothing on a live server.
+
+## Confirm it's you
+
+Before points are added or spent, the device asks the person holding it to unlock it, as the **last step** of logging, checking in or
+redeeming. The form is filled in first; if the prompt is cancelled or fails, everything stays as typed and the same button says "Try
+again". Pressing it twice doesn't send twice. The first time, a short explanation appears.
+
+- **How:** WebAuthn / passkeys with user verification required. The operating system shows its own prompt: Face ID or face unlock,
+  fingerprint, or the device passcode, whichever the device offers (a security key also works). A web page can't require face recognition
+  specifically and never receives a face image, template or any biometric data. It receives a signed yes or no. The app never collects selfies.
+- **With the server** the check is real: the server creates the challenge, verifies the passkey's signature, origin and
+  user-verification flag, ties the result to one account, one purpose (log or redeem) and the exact submission, and accepts it for two
+  minutes, once (`server/webauthn.py`, `server/auth.py`). The browser cannot say "I authenticated" on its own.
+- **In the on-device demo** there is no server to verify anything, so the check only guards against someone using an unlocked phone
+  (the signature isn't verified). If the device can't do it, a clearly labelled **simulated** step is offered (switch it off with
+  `config.deviceAuth.allowSimulation`). A demo-server account without a passkey gets the same labelled step. A live server never accepts it,
+  and results that used it say "Simulated".
+- **What it means:** whoever holds the device or account just satisfied its screen lock. It does **not** show that the person recycled, that
+  they were at a station, or that they have only one account. The screens say so.
+
+## Demo versus live
+
+| | On-device demo | Demo server (`BC_MODE=demo`) | Live server (`BC_MODE=live`) |
+|---|---|---|---|
+| Where activity, points, redemptions live | Browser storage | Server database (`bubblecycle-demo.db`) | Server database (`bubblecycle-live.db`), kept apart from demo |
+| What leaves the device | Nothing (map tiles and optional Open Food Facts lookups only) | Log entries, check-in results (location *result* and a coarse photo fingerprint, never the photo or exact position), nickname if you opt in | Same as demo server |
+| Limits, duplicates, daily caps | Enforced on the device | **Server** | **Server** |
+| Points, balance, leaderboard counts | Computed on the device | **Server** | **Server** |
+| Timestamps, "verified" labels, balances sent by the client | n/a | Ignored: the server uses its own clock and records | Ignored |
+| Retry safety | n/a | Submission keys: a retry returns the original result | Same |
+| Redemption | Device | **Server**, atomic (one write lock): cannot overspend or double-redeem | Same |
+| Receipts → "verified" | Demo codes `BC-1001-ZH` … | Demo codes (demo mode only) | Only codes signed by a trusted issuer (`BC_RECEIPT_SECRET`); none if unset |
+| Confirm it's you | Device-only passkey, or labelled simulation | Server-verified passkey; labelled simulation for passkey-less demo accounts | Server-verified passkey only |
+| Check-in review | Demo reviewer buttons on your own device | Held items wait for staff (`python -m server review` or the admin API) | Same |
+| Quests | All seven, claimed on the device | Four the server can verify (items, materials, verified items, weeks); the rest stay on the device and pay nothing | Same |
+| Offline | Works; saved on the device | Saved on the device as **not counted**; the server re-checks when it is sent | Same |
+| Map places, community review, products, barcodes, social, rewards catalogue | Sample/simulated | Sample/simulated | **Still sample/simulated** |
+
+**Still simulated everywhere:** friends and challenges (people are generated), community map approvals (an on-device demo admin),
+product and retailer data, municipal rules beyond the general guidance, the reward catalogue (fictional shops; codes start with `DEMO-`),
+and the collection dates (sample dates, labelled).
+
+**What is needed for real rewards and verified deposits**
+
+- A **receipt/deposit issuer** you trust: a station machine or retailer backend that signs receipt codes (format in `server/receipts.py`) or confirms
+  deposits itself. Without it nothing can honestly be called "verified", and the app doesn't call it that. Location and photos are
+  evidence a person may find reassuring; they don't show what was put in a container.
+- **Reward partners** that issue real vouchers and can verify redemptions, plus fraud rules for that value.
+- A production deployment: HTTPS, backups of the database, monitoring, a privacy notice for the data above, a deletion process
+  (Profile › Delete my account is built in), moderation, and a real review workflow for held items.
+- Municipal open data for stations and the waste calendar.
+
+## How it is built
+
+- **Preact + htm** (bundled in `vendor/`): React-style components, no bundler. **Leaflet** + OpenStreetMap tiles for the map.
+  **BarcodeDetector** for scanning with a **ZXing** fallback. Browser storage for the on-device copy.
+- **Python server** (`server/`): standard library plus `cryptography`. SQLite with one write lock around anything that touches credit or
+  balances. Serves the app and the API from one address, so the session cookie is HttpOnly + SameSite=Strict and passkeys bind to one domain.
+- **One boundary:** screens call `services/` only. `services/index.js` routes each domain to a demo or live provider by `config.providers`;
+  `services/api.js` / `account.js` / `activity.js` talk to the server; `services/deviceauth.js` does the passkey step. When the server serves
+  the app it answers `/js/env.js` with `{ api: true, mode }`, which switches logging, rewards and the leaderboard over.
+- **Shared rules:** `js/logic/` holds the pure rules. The server has the same rules in Python (`server/rules.py`, `server/zurich.py`); both
+  are tested against the same fixtures (`tests/fixtures`) so they can't drift apart quietly.
 
 ```
 bubblecycle/
-  index.html            app shell
-  css/styles.css        pastel design system (tokens, components, reduced-motion)
-  serve.py              no-cache dev server
+  index.html, sw.js, offline.html   app shell, service worker, offline page
+  serve.py                          on-device demo server (static files)
+  requirements.txt                  server dependency (cryptography)
+  server/                           the RECYCL IT! server (python -m server)
+    rules.py zurich.py              limits, duplicates, evidence signals, quests, Zurich time
+    service.py                      submissions, review, redemption, leaderboard, quests, account deletion
+    auth.py webauthn.py             accounts, sessions, passkey and confirmation checks
+    receipts.py                     trusted-receipt boundary
+    http_server.py db.py config.py  API + static files, SQLite, settings
+    data/                           stations.json, rewards.json (the server's copy; tests keep it in step with the app)
   js/
-    app.js              routing + bottom navigation
-    config.js           provider switches (demo/live), limits, points
-    store.js            local state, logging, redemption
-    ui.js               icons, chips, sheets, toasts, states
-    logic/              pure logic: recycling rules, logging/leaderboard, discovery, hours
-    data/               DEMO data: stations, places, products, barcodes, rewards, players
-    services/
-      index.js          the only module screens call; routes to demo or live
-      demo.js           demo providers (sample data + simulated latency)
-      live.js           live provider stubs to implement
-      openfoodfacts.js  optional real barcode lookup (opt-in)
-    screens/            home, map, scan, discover, rewards, leaderboard, activity, profile
+    app.js router.js store.js ui.js
+    env.js config.js                where the rules come from; limits, points, providers
+    logic/                          pure rules (activity, evidence, quests, social, calendar, zurich)
+    services/                       demo/live providers, api, account, activity, deviceauth
+    screens/                        home, map, scan, discover, rewards, leaderboard, activity, profile, calendar, dev …
+    data/                           demo data
+  tests/                            py (server), js (browser unit), e2e (end to end), fixtures
+  tools/                            export_stations, build_precache, vendor, make_icons, fetch_osm
+  deploy/ docs/ Dockerfile          staging and phone-testing setup (nothing publishes automatically)
 ```
 
-## Try the main flows
+## Offline and updates
 
-1. **Find a station**: Map tab → type `8003`, `Bern` or `Lausanne`, or tap the locate button.
-   Filter by material, switch Map/List, tap a station for hours, materials and directions.
-2. **Discover**: Home → *Find a sustainable treat*, or type "I want a sweet treat from Migros".
-   Answer the optional diet question or open *Refine*.
-3. **Scan**: Scan tab → tap a demo barcode (e.g. *Dark chocolate bar* needs packaging
-   confirmation; *Unknown product* shows the fallback), or type `2000000000015`.
-4. **Log recycling**: from Home, a station or a scan result. Use a demo receipt code such as
-   `BC-1002-ZH` to make the log *verified*. Try logging the same thing twice to see the
-   duplicate safeguard.
-5. **Rewards**: redeem a badge or demo voucher. Your points drop, your rank doesn't change.
-6. **Leaderboard**: set a nickname and opt in on Profile, then compare weekly/monthly.
-7. **Error states**: Profile › Developer › *Simulate network errors*.
+- After one completed visit the app opens offline. The service worker (`sw.js`) stores every local HTML, CSS, JS, icon, font and library
+  file named in `sw-manifest.js`, which `serve.py` and the server generate from the files on disk (static hosts run
+  `python tools/build_precache.py`). The cache name carries a hash of those files, so each release gets a new cache and the old one is
+  deleted when the new worker activates.
+- **Updates never swap under your hands.** A new version downloads in the background and a banner offers "Update now"; it is disabled
+  while a form is open ("Finish what you're doing, then update"), so nothing typed is lost.
+- **Never cached:** `/api/` responses, other origins (map tiles, Open Food Facts), non-GET requests, anything outside the shell. Accounts,
+  balances and evidence therefore never enter a general cache. Check-in photos live in the page's own storage, not in the cache.
+- **Offline submissions with the server** are stored on the device as "Saved on this device, not counted" and listed under Activity. When
+  you're back online you confirm once and the server re-checks each one (limits, duplicates, receipts, age: items older than 72 hours expire).
+  Each can be accepted, held for review or refused with a reason, and a retry of something the server already received is recognised, not
+  counted again. Offline items are never shown as accepted.
+- **Maps are not available offline.** Tiles come from OpenStreetMap's servers and aren't stored, and the app says so. The station list and
+  the rest of the app work.
 
-## What's demo vs. what's real
+## Testing
 
-| Feature | In this MVP | Needed for a real launch |
-|---|---|---|
-| Stations and bins (Rotkreuz) | **Real** OpenStreetMap snapshot (3 recycling points, ~21 bins) plus 4 labelled **demo** stations | Municipal open data (Risch), live OSM refresh, or your own database; see "Rotkreuz launch" below |
-| Place search | **Demo** gazetteer (Rotkreuz places; other towns only answer "starting in Rotkreuz") | Geocoder, e.g. geo.admin.ch (swisstopo) search or Nominatim |
-| Your location | **Real** (browser geolocation, stored only as ~1 km area) | Same |
-| Map | **Real** OpenStreetMap tiles | A tile provider with a commercial plan or self-hosted tiles (the OSM tile servers aren't for production apps) |
-| Products | **Demo** listings ("Migros (example retailer)"); prices illustrative; labels marked *not verified* | Retailer product API agreement; label verification from official registries; live prices and availability |
-| Barcode → packaging | **Demo** barcodes (GS1 internal prefix 200…, so they can't clash with real products) | Packaging database (retailer data, GS1 data); optional **real** Open Food Facts lookup is built in (Profile › Data sources, off by default) |
-| Recycling rules | General Swiss guidance plus a few municipality tweaks | Per-municipality rules and collection calendars (municipal data or a provider) |
-| Receipt verification | **Demo** codes `BC-xxxx-XX` | Station machines or retailer systems that issue verifiable codes, checked server-side |
-| Points and rewards | Points are **real** (local); rewards are **fictional** (no partners) | Partner agreements, voucher issuing, fraud controls |
-| Leaderboard | Other players are **fictional**; your entry is real (opt-in) | Backend with accounts or anonymous IDs, server-side limits and duplicate detection, moderation of nicknames |
+```
+pip install -r requirements-dev.txt
+python -m pytest tests/py                 # server: rules, limits, duplicates, idempotency, points, redemption races, review, passkeys, HTTP
+python tests/run_js.py                    # browser unit tests: Zurich time, rankings, streaks, challenges, quests, store, calendar
+python -m pytest tests/e2e                # end to end in Chrome, against real servers
+```
 
-To connect a real service, implement the function in `js/services/live.js` (same
-signature and return shape as `demo.js`), then set that domain to `'live'` in
-`js/config.js`. Screens don't need to change.
+(`python tests/run_all.py` runs the three in order.) The end-to-end tests need Chrome or Edge installed.
+
+**What the tests establish.** The rules above hold for the cases tested, and the browser and server agree with each other and with an
+independent time-zone database across clock changes. **What they don't.** They use Chrome's *virtual* authenticator, a *mocked* GPS
+position and a *fake* camera, on a desktop engine. They say nothing about Face ID or fingerprint hardware, real GPS accuracy, Safari on
+iOS, mobile keyboards, or other browsers. Those need a person with a phone: [docs/PHONE-TESTING.md](docs/PHONE-TESTING.md).
+
+## Collection calendar
+
+Profile › Collection calendar (or `#/calendar`). The dates are **sample dates** and labelled as such: nobody has loaded the municipality's
+official schedule into this app. To use real dates, replace `COLLECTIONS` in `js/data/collection-calendar.js` and set `CALENDAR_SOURCE`
+(kind `official`, the page the dates came from, and the date they were last checked); the screen then shows that source and date
+instead of the sample warning. You can filter by material, switch on an **in-app** reminder (a note on Home the day before, shown only
+when you open the app), and download an `.ics` file for your phone's calendar, with an optional 18:00 reminder the evening before.
+
+**Reminders when the app is closed** need either your calendar app (use the `.ics`) or web push, which needs a push service, stored
+subscriptions and a scheduler on the server. None of that exists here, so the app doesn't offer it and doesn't promise it.
 
 ## Honesty and fairness rules built in
 
@@ -105,22 +207,29 @@ signature and return shape as `demo.js`), then set that domain to `'live'` in
 - Allergy filters hide products that contain **or may contain** the allergen.
 - Leaderboard ranks by **accepted recyclable items** in the selected period only. Points are a
   separate ledger, so redeeming never changes rank.
-- Safeguards: max 50 items per material per log, 150 items and 20 logs per day, duplicate
-  logs (same material and count within 10 minutes) blocked, receipt codes single-use, and
-  verified items shown separately with a "verified only" ranking toggle. In this MVP these
-  run on the device; a real launch must enforce them on a server.
+- Safeguards: max 50 items per material per log, 150 items and 20 logs per day, duplicate logs (same material and count within 10 minutes)
+  blocked, receipt codes single-use, and verified items shown separately with a "verified only" ranking toggle. With the server these are
+  enforced there (and re-checked when a held check-in is approved); in the on-device demo they run on the device, which a determined
+  person can change.
 
 ## Privacy
 
-No account, no email, no analytics. Stored locally: optional nickname, municipality, weekly goal,
-preferences, recycling logs, points, redemptions and the last searched area (coarse). Camera
-frames are processed on-device and never stored. *Profile › Delete all my data* wipes everything.
+No email, no phone number, no analytics. **On-device demo:** everything is stored in your browser and nothing is sent anywhere, except map
+tiles and the optional, opt-in Open Food Facts lookup (just the barcode). **With the server:** an account is a random ID plus the passkey's
+public key (never a biometric); activity, points and redemptions are stored there; a nickname is stored only if you add one and is shown only
+if you opt in to the leaderboard. Check-ins send the station, materials and counts, whether the device was near (the *result* of a one-time
+location check and its accuracy, never your position), and a 64-bit fingerprint of the optional photo for spotting repeats (never the
+photo). Camera frames are processed on-device. Profile › **Delete all my data** clears the device; **Delete my account** (server version)
+removes the account and its records from the server, keeping only the fact that a receipt code was used. Demo and live databases are separate files.
 
 ## Accessibility
 
-Large tap targets (44–48 px+), strong text contrast, visible focus rings, labelled controls,
-keyboard-closable dialogs, live-region toasts, and every animation disabled under
-`prefers-reduced-motion`.
+Large tap targets (44–48 px+), strong text contrast, visible focus rings, labelled controls, live-region toasts, and every animation disabled
+under `prefers-reduced-motion`. Every dialog is one component (`Sheet` in `js/ui.js`) and is a real dialog: it has an accessible name, moves
+focus into itself, keeps Tab inside, closes on Escape (topmost first; not while a submission is in progress), makes the page behind it
+inert so nothing there can be reached or read, returns focus to the control that opened it, and follows the visual viewport so the form
+stays above an on-screen keyboard. Tests cover the keyboard and focus behaviour; keyboards and screen readers on real phones are on the
+manual checklist.
 
 ## Rotkreuz launch and community map
 
@@ -220,6 +329,10 @@ a server can reuse them; `js/services/live.js` documents the expected API.
 
 - **Palette:** a warm paper background (`--paper`), solid surfaces, warm ink, and one green accent (`--accent`). Amber (`--warn-tint`) is used
   only for warnings and demo labels; red (`--error`) only for errors.
+- **Brand:** the logo is `icons/logo.png` (dark artwork on white, always shown on a white disc). The brand orange `#F2A33A` (`--brand-orange`)
+  is the app bar and the icon background; the logo's dark green is `--brand-deep`. Contrast: the dark ink on the orange is 7.6:1, white on the
+  orange only 2.1:1, so **white text is never used on the orange** (white text stays on the green buttons, 6.7:1). The app icons are made
+  by `python tools/make_icons.py` (needs `pip install pillow`; the generated PNGs are committed). The artwork itself reads "RECYCL IT" without the "!".
 - **Type:** Fraunces (soft serif) for headings, Source Sans 3 for text.
 - **Shapes (kept consistent):** cards and sheets 8px, buttons and inputs 6px, pills only for filter chips and status tags, circles only for avatars,
   map markers, progress rings and the switch knob.
@@ -255,3 +368,48 @@ send submissions to a shared, reviewed product database.
 yourself: recycle 25 items, try 4 materials, log 5 verified items, recycle in 3 different weeks, check 5 products by scanning, add 3 Bottledex
 entries, help the map twice. They read only validated activity (duplicates are already blocked), and the bonus is spendable points only: it never
 becomes recycling activity, so it can’t move anyone on the leaderboard. Nothing asks for purchases or extra trips. Quest rules: `js/logic/quests.js`.
+
+## Recycling check-in (evidence, review, privacy)
+
+Home › *Check in at a station*, or a station on the Map › *Check in here*. Four steps: station and materials, location,
+optional photo, summary to confirm. Every step can be skipped; skipping just keeps the check-in **Self-reported**.
+
+**What the labels mean**
+- **Self-reported:** you said so; nothing was checked.
+- **Location checked:** the device was within 75 m of the station *plus* its reported GPS accuracy, and the fix was better than ±100 m.
+  It does not show what was put in the container.
+- **Confirmed by a collection partner:** reserved for a real deposit-confirmation integration. Nothing in this demo can reach it.
+
+A photo can support a claim but doesn't prove a deposit. A product barcode identifies a product, not one physical item.
+
+**Review, not accusation.** Warning signals (`js/logic/evidence.js`): several check-ins within an hour, overlapping check-ins at two
+stations, 40+ items in one go, a photo that looks like an earlier one, stations too far apart for the time between, and a device
+away from the station. Any signal holds the credit as *pending*: nothing is counted and no points are added until it is settled.
+Poor GPS (inaccurate fix) is **not** a signal. Nobody is banned for one signal. Signals are shown only to the person who made the
+check-in (Activity › Check-ins), where they can add a note (appeal) or withdraw. In the demo a *Demo reviewer* can approve or decline.
+
+**Data.** Stays on the device: exact position (used once, never stored), the photo (deleted after the check-in unless you keep it;
+up to 5 can be kept and deleted in Profile). Would be synced for rewards and challenges: station, materials and counts, time, the location
+*result* and GPS accuracy, a 64-bit photo fingerprint (not the photo), a random device ID, the review status. Shared by choice: nickname and
+totals (leaderboard), what friends may see. In this demo the "server" is simulated (`submitCheckin` in `services/demo.js`), so nothing is
+actually sent. Checks that run on a device can be altered by a determined person; catching repeats across accounts needs some shared data.
+
+**Offline.** Without a connection (or if the service call fails) a check-in is saved as *Waiting to send* and sent when the browser
+goes online again. Credit stays pending until then.
+
+**Device confirmation ("Confirm it's you").** Opening *Log recycling* or *Check in* first asks the device to confirm the person
+holding it (`services/deviceauth.js`, `screens/authgate.js`). It uses WebAuthn with user verification required, so the OS shows its own
+prompt: Face ID or face unlock, fingerprint, or the device passcode, whichever the device and its settings offer. A web page can't force
+face recognition specifically, and never sees any biometric data; the app only gets pass/fail. It is needed once per submission (the sheet
+starts unconfirmed each time it opens), and a failed or cancelled attempt keeps the draft and offers *Try again*. The first use creates a
+device-bound passkey (id kept in local state, deleted with *Delete all my data*; the passkey itself can be removed in device settings).
+What it means: someone else can't log activity on an unlocked device. What it doesn't: that you recycled, that you're at a station, or
+that you have one account. If the device or connection can't do it (no screen lock, or http instead of https/localhost), the prototype
+offers a clearly labelled **simulated** step (`config.deviceAuth.allowSimulation`, switch off for launch) that is never shown as a real check.
+Prototype limit: with no server, the challenge is created on the device and the signature isn't verified; a backend must do both.
+
+**Confirming it's you** happens when the check-in is submitted; see "Confirm it's you" above. With the server, a flagged check-in
+waits for staff review (`python -m server review`) and can be appealed with a note or withdrawn from Activity.
+
+**Not built yet:** evidence requirements for higher-value rewards beyond "verified items" (vouchers need 5), groups, team challenges, the
+community feed and Community Events, partner deposit confirmation, and a reviewer web screen (review is a command and an API for now).

@@ -67,7 +67,7 @@ function Onboarding({ onDone }) {
   return html`<div class="stack">
     <section class="section">
       <h2>Recycle with friends</h2>
-      <p>Add friends, join weekly or monthly challenges and keep a weekly streak. It is optional, and the rest of BubbleCycle works without it.</p>
+      <p>Add friends, join weekly or monthly challenges and keep a weekly streak. It is optional, and the rest of RECYCL IT! works without it.</p>
       <ul class="check-list">
         <li>No chat, only a few preset reactions</li><li>You choose what friends can see</li><li>Places and times are never shared</li>
       </ul>
@@ -94,7 +94,7 @@ function QrSheet({ username, onClose }) {
     <div class="stack center">
       ${state.status === 'loading' && html`<p class="muted">Making your code…</p>`}
       ${state.status === 'error' && html`<p class="note tone-peach" role="alert">The QR code couldn’t be made (it needs an internet connection). You can still share your invite link.</p>`}
-      ${state.status === 'ready' && html`<div class="qr-box" role="img" aria-label=${`QR code that opens BubbleCycle to add @${username}`} dangerouslySetInnerHTML=${{ __html: state.svg }}></div>`}
+      ${state.status === 'ready' && html`<div class="qr-box" role="img" aria-label=${`QR code that opens RECYCL IT! to add @${username}`} dangerouslySetInnerHTML=${{ __html: state.svg }}></div>`}
       <p>Show this to a friend. Their phone camera opens a link to add <strong>@${username}</strong>.</p>
       <p class="muted small">Anyone with this code can send you a request, but you always choose whether to accept.</p>
     </div>

@@ -1,4 +1,4 @@
-/* BubbleCycle — theme.
+/* RECYCL IT! — theme.
    Loaded after styles.css (which holds layout and component structure). This file owns the look:
    warm paper background, solid surfaces, one green accent, modest corner radii.
 
@@ -23,6 +23,8 @@
   --warn-tint: #f5e6bd;
   --warn-ink: #5c4300;
   --error: #a3301c;
+  --brand-orange: #f2a33a;   /* from the logo. Dark ink on it is 7.6:1; white text on it is only 2.1:1, so never use white text here. */
+  --brand-deep: #0d2d25;     /* the logo's dark green */
 
   /* shape + depth */
   --r-card: 8px;
@@ -159,8 +161,11 @@ input, select, textarea { border-radius: var(--r-ctl); }
 .toast.tone-mint, .toast.tone-lavender, .toast.tone-peach, .toast.tone-sky { background: var(--ink); }
 
 /* ---------- Navigation ---------- */
-.app-bar { background: var(--paper); border-bottom: 1px solid var(--line-soft); padding: 6px 16px; }
-.brand { font-family: var(--font-head); font-weight: 600; font-size: 1.15rem; color: var(--ink); }
+.app-bar { background: var(--brand-orange); border-bottom: 2px solid var(--brand-deep); padding: 6px 16px; }
+.app-bar :focus-visible { outline-color: var(--ink); }
+.brand { font-family: var(--font-head); font-weight: 700; font-size: 1.2rem; letter-spacing: .02em; color: var(--ink); gap: 10px; }
+.brand-logo { width: 40px; height: 40px; flex: none; border-radius: 50%; background: #fff; display: block; }
+.boot-logo { width: 96px; height: 96px; border-radius: 50%; background: #fff; animation: float 2s ease-in-out infinite; }
 .brand-bubble { border-radius: 50%; width: 20px; height: 20px; background: var(--accent); border: 0; }
 .avatar-btn { background: var(--surface); border: 1.5px solid var(--ink-soft); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .avatar-btn.active { outline: 3px solid var(--accent); outline-offset: 1px; }

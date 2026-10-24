@@ -119,25 +119,104 @@ export function StateCard({ icon = 'info', tone = 'sky', title, children, action
   </div>`;
 }
 
-// Accessible bottom sheet: Escape closes, focus moves into the sheet and back afterwards.
-export function Sheet({ open, onClose, title, children }) {
+// ---- Dialogs ---------------------------------------------------------------------------------
+// Every modal in the app is a Sheet. It is a real dialog: it names itself, traps Tab, closes on Escape
+// (topmost first, unless it's busy and `dismissable` is false), makes everything behind it inert, gives
+// focus back to the control that opened it, and keeps itself above the on-screen keyboard.
+const sheetStack = [];
+export const openSheetCount = () => sheetStack.length;
+const inertCount = new WeakMap();
+let sheetSeq = 0;
+
+// Makes every element outside the dialog's own branch of the page inert (no focus, no clicks, hidden from
+// screen readers). Counted, so stacked dialogs release in the right order. Toasts stay live on purpose.
+function lockBackground(dialogRoot) {
+  const locked = [];
+  for (let node = dialogRoot; node && node !== document.body; node = node.parentElement) {
+    const parent = node.parentElement;
+    if (!parent) break;
+    for (const sib of parent.children) {
+      if (sib === node || sib.hasAttribute('data-keep-active') || ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(sib.tagName)) continue;
+      inertCount.set(sib, (inertCount.get(sib) || 0) + 1);
+      sib.inert = true;
+      locked.push(sib);
+    }
+  }
+  return () => locked.forEach((el) => {
+    const n = (inertCount.get(el) || 1) - 1;
+    inertCount.set(el, n);
+    if (n <= 0) el.inert = false;
+  });
+}
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+function trapTab(e, root) {
+  const items = [...root.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement);
+  if (!items.length) { e.preventDefault(); return; }
+  const first = items[0]; const last = items[items.length - 1];
+  if (e.shiftKey && (document.activeElement === first || !root.contains(document.activeElement))) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (document.activeElement === last || !root.contains(document.activeElement))) { e.preventDefault(); first.focus(); }
+}
+
+export function Sheet({ open, onClose, title, children, dismissable = true }) {
   const ref = useRef();
+  const latest = useRef({});
+  latest.current = { onClose, dismissable };
+  const titleId = useRef(null);
+  if (!titleId.current) titleId.current = `sheet-title-${++sheetSeq}`;
+
   useEffect(() => {
-    if (!open) return;
-    const prev = document.activeElement;
-    const t = setTimeout(() => ref.current?.querySelector('h2')?.focus(), 30);
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
+    if (!open) return undefined;
+    const dialog = ref.current;
+    const backdrop = dialog.parentElement;
+    const id = ++sheetSeq;
+    sheetStack.push(id);
+    const opener = document.activeElement;
+    const unlock = lockBackground(backdrop);
     document.body.classList.add('no-scroll');
-    return () => { clearTimeout(t); document.removeEventListener('keydown', onKey); document.body.classList.remove('no-scroll'); prev?.focus?.(); };
+    const t = setTimeout(() => dialog.querySelector('h2')?.focus(), 30);
+
+    const onKey = (e) => {
+      if (sheetStack[sheetStack.length - 1] !== id) return;
+      if (e.key === 'Escape' && latest.current.dismissable) { e.preventDefault(); latest.current.onClose(); }
+      else if (e.key === 'Tab') trapTab(e, dialog);
+    };
+    document.addEventListener('keydown', onKey);
+
+    // Sit above the on-screen keyboard: follow the visual viewport, and bring a focused field into view.
+    const vv = window.visualViewport;
+    const fit = () => { if (!vv) return; backdrop.style.top = `${vv.offsetTop}px`; backdrop.style.height = `${vv.height}px`; };
+    fit();
+    vv?.addEventListener('resize', fit);
+    vv?.addEventListener('scroll', fit);
+    const reveal = (e) => {
+      if (!e.target.matches?.('input, textarea, select')) return;
+      const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      setTimeout(() => e.target.scrollIntoView?.({ block: 'center', behavior: calm ? 'auto' : 'smooth' }), 250);
+    };
+    dialog.addEventListener('focusin', reveal);
+
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('keydown', onKey);
+      vv?.removeEventListener('resize', fit);
+      vv?.removeEventListener('scroll', fit);
+      dialog.removeEventListener('focusin', reveal);
+      sheetStack.splice(sheetStack.indexOf(id), 1);
+      unlock();
+      if (!sheetStack.length) document.body.classList.remove('no-scroll');
+      if (opener && opener.isConnected && opener !== document.body) opener.focus?.();
+      else document.getElementById('main')?.focus();
+    };
   }, [open]);
+
   if (!open) return null;
-  return html`<div class="sheet-backdrop" onClick=${(e) => e.target === e.currentTarget && onClose()}>
-    <div class="sheet" role="dialog" aria-modal="true" aria-label=${title} ref=${ref}>
+  return html`<div class="sheet-backdrop" onClick=${(e) => e.target === e.currentTarget && dismissable && onClose()}>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby=${titleId.current} ref=${ref}>
       <div class="sheet-handle" aria-hidden="true"></div>
       <div class="sheet-head">
-        <h2 tabindex="-1">${title}</h2>
-        <button class="icon-btn" onClick=${onClose} aria-label="Close"><${Icon} name="x" /></button>
+        <h2 id=${titleId.current} tabindex="-1">${title}</h2>
+        <button type="button" class="icon-btn" onClick=${onClose} disabled=${!dismissable} aria-label=${`Close: ${title}`}><${Icon} name="x" /></button>
       </div>
       <div class="sheet-body">${children}</div>
     </div>
@@ -157,7 +236,7 @@ export function ToastHost() {
     };
     return () => { toastListener = null; };
   }, []);
-  return html`<div class="toasts" role="status" aria-live="polite">
+  return html`<div class="toasts" role="status" aria-live="polite" data-keep-active>
     ${items.map((t) => html`<div key=${t.id} class=${`toast tone-${t.tone}`}>${t.message}</div>`)}
   </div>`;
 }

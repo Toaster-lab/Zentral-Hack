@@ -3,7 +3,7 @@ q = '[out:json][timeout:25];(node["amenity"="recycling"](47.125,8.405,47.160,8.4
 data = urllib.parse.urlencode({'data': q}).encode()
 for i in range(4):
     try:
-        req = urllib.request.Request('https://overpass-api.de/api/interpreter', data=data, headers={'User-Agent':'BubbleCycle-demo/0.1'})
+        req = urllib.request.Request('https://overpass-api.de/api/interpreter', data=data, headers={'User-Agent':'RECYCL IT!-demo/0.1'})
         d = json.loads(urllib.request.urlopen(req, timeout=60).read().decode('utf-8'))
         break
     except Exception as e:

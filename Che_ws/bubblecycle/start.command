@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Start BubbleCycle on macOS or Linux. Needs Python 3.
+# Start RECYCL IT! on macOS or Linux. Needs Python 3.
 #   ./start.sh            (first time: chmod +x start.sh)
 cd "$(dirname "$0")" || exit 1
 if command -v python3 >/dev/null 2>&1; then

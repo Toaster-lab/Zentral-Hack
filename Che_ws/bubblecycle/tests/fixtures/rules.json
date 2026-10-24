@@ -1,0 +1,713 @@
+[
+ {
+  "name": "one valid line",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 3
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 3
+  }
+ },
+ {
+  "name": "exactly the per-log limit is fine",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 50
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 50
+  }
+ },
+ {
+  "name": "one over the per-log limit is refused",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 51
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "too_many_per_log",
+   "accepted": null
+  }
+ },
+ {
+  "name": "zero items",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 0
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "no_items",
+   "accepted": null
+  }
+ },
+ {
+  "name": "no material chosen",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": null,
+    "count": 2
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "no_items",
+   "accepted": null
+  }
+ },
+ {
+  "name": "fractions are refused",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 1.5
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "not_integer",
+   "accepted": null
+  }
+ },
+ {
+  "name": "household waste is not countable",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": "residual",
+    "count": 2
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "not_countable",
+   "accepted": null
+  }
+ },
+ {
+  "name": "the same material twice in one log",
+  "now": 1792836000000,
+  "history": [],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 1
+   },
+   {
+    "material": "glass",
+    "count": 2
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "duplicate_material",
+   "accepted": null
+  }
+ },
+ {
+  "name": "same material and count 9 minutes ago is a duplicate",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792835460000,
+    "material": "glass",
+    "count": 3,
+    "accepted": 3,
+    "batchId": "b1"
+   }
+  ],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 3
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "duplicate",
+   "accepted": null
+  }
+ },
+ {
+  "name": "exactly 10 minutes ago still counts as a duplicate",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792835400000,
+    "material": "glass",
+    "count": 3,
+    "accepted": 3,
+    "batchId": "b1"
+   }
+  ],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 3
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "duplicate",
+   "accepted": null
+  }
+ },
+ {
+  "name": "11 minutes ago is fine",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792835340000,
+    "material": "glass",
+    "count": 3,
+    "accepted": 3,
+    "batchId": "b1"
+   }
+  ],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 3
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 3
+  }
+ },
+ {
+  "name": "different count is not a duplicate",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792835880000,
+    "material": "glass",
+    "count": 3,
+    "accepted": 3,
+    "batchId": "b1"
+   }
+  ],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 4
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 4
+  }
+ },
+ {
+  "name": "different material is not a duplicate",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792835880000,
+    "material": "glass",
+    "count": 3,
+    "accepted": 3,
+    "batchId": "b1"
+   }
+  ],
+  "entries": [
+   {
+    "material": "pet",
+    "count": 3
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 3
+  }
+ },
+ {
+  "name": "20 logs already today blocks the 21st",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792834200000,
+    "material": "glass",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b0"
+   },
+   {
+    "ts": 1792834140000,
+    "material": "pet",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b1"
+   },
+   {
+    "ts": 1792834080000,
+    "material": "plastic_bottle",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b2"
+   },
+   {
+    "ts": 1792834020000,
+    "material": "aluminium",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b3"
+   },
+   {
+    "ts": 1792833960000,
+    "material": "tin",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b4"
+   },
+   {
+    "ts": 1792833900000,
+    "material": "paper",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b5"
+   },
+   {
+    "ts": 1792833840000,
+    "material": "cardboard",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b6"
+   },
+   {
+    "ts": 1792833780000,
+    "material": "battery",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b7"
+   },
+   {
+    "ts": 1792833720000,
+    "material": "textile",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b8"
+   },
+   {
+    "ts": 1792833660000,
+    "material": "electronics",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b9"
+   },
+   {
+    "ts": 1792833600000,
+    "material": "glass",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b10"
+   },
+   {
+    "ts": 1792833540000,
+    "material": "pet",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b11"
+   },
+   {
+    "ts": 1792833480000,
+    "material": "plastic_bottle",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b12"
+   },
+   {
+    "ts": 1792833420000,
+    "material": "aluminium",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b13"
+   },
+   {
+    "ts": 1792833360000,
+    "material": "tin",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b14"
+   },
+   {
+    "ts": 1792833300000,
+    "material": "paper",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b15"
+   },
+   {
+    "ts": 1792833240000,
+    "material": "cardboard",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b16"
+   },
+   {
+    "ts": 1792833180000,
+    "material": "battery",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b17"
+   },
+   {
+    "ts": 1792833120000,
+    "material": "textile",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b18"
+   },
+   {
+    "ts": 1792833060000,
+    "material": "electronics",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b19"
+   }
+  ],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 2
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "daily_logs",
+   "accepted": null
+  }
+ },
+ {
+  "name": "19 logs today still allows one more",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792834200000,
+    "material": "glass",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b0"
+   },
+   {
+    "ts": 1792834140000,
+    "material": "pet",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b1"
+   },
+   {
+    "ts": 1792834080000,
+    "material": "plastic_bottle",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b2"
+   },
+   {
+    "ts": 1792834020000,
+    "material": "aluminium",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b3"
+   },
+   {
+    "ts": 1792833960000,
+    "material": "tin",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b4"
+   },
+   {
+    "ts": 1792833900000,
+    "material": "paper",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b5"
+   },
+   {
+    "ts": 1792833840000,
+    "material": "cardboard",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b6"
+   },
+   {
+    "ts": 1792833780000,
+    "material": "battery",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b7"
+   },
+   {
+    "ts": 1792833720000,
+    "material": "textile",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b8"
+   },
+   {
+    "ts": 1792833660000,
+    "material": "electronics",
+    "count": 1,
+    "accepted": 1,
+    "batchId": "b9"
+   },
+   {
+    "ts": 1792833600000,
+    "material": "glass",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b10"
+   },
+   {
+    "ts": 1792833540000,
+    "material": "pet",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b11"
+   },
+   {
+    "ts": 1792833480000,
+    "material": "plastic_bottle",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b12"
+   },
+   {
+    "ts": 1792833420000,
+    "material": "aluminium",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b13"
+   },
+   {
+    "ts": 1792833360000,
+    "material": "tin",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b14"
+   },
+   {
+    "ts": 1792833300000,
+    "material": "paper",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b15"
+   },
+   {
+    "ts": 1792833240000,
+    "material": "cardboard",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b16"
+   },
+   {
+    "ts": 1792833180000,
+    "material": "battery",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b17"
+   },
+   {
+    "ts": 1792833120000,
+    "material": "textile",
+    "count": 2,
+    "accepted": 2,
+    "batchId": "b18"
+   }
+  ],
+  "entries": [
+   {
+    "material": "glass",
+    "count": 2
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 2
+  }
+ },
+ {
+  "name": "daily item cap reached",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792825200000,
+    "material": "paper",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "x1"
+   },
+   {
+    "ts": 1792821600000,
+    "material": "glass",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "x2"
+   },
+   {
+    "ts": 1792818000000,
+    "material": "pet",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "x3"
+   }
+  ],
+  "entries": [
+   {
+    "material": "tin",
+    "count": 1
+   }
+  ],
+  "expect": {
+   "ok": false,
+   "code": "daily_items",
+   "accepted": null
+  }
+ },
+ {
+  "name": "only part of a log fits under the daily cap",
+  "now": 1792836000000,
+  "history": [
+   {
+    "ts": 1792825200000,
+    "material": "paper",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "x1"
+   },
+   {
+    "ts": 1792821600000,
+    "material": "glass",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "x2"
+   },
+   {
+    "ts": 1792818000000,
+    "material": "pet",
+    "count": 40,
+    "accepted": 40,
+    "batchId": "x3"
+   }
+  ],
+  "entries": [
+   {
+    "material": "tin",
+    "count": 20
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 10
+  }
+ },
+ {
+  "name": "yesterday before Zurich midnight does not count towards today",
+  "now": 1792794600000,
+  "history": [
+   {
+    "ts": 1792791540000,
+    "material": "paper",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "y1"
+   },
+   {
+    "ts": 1792785600000,
+    "material": "glass",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "y2"
+   },
+   {
+    "ts": 1792782000000,
+    "material": "pet",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "y3"
+   }
+  ],
+  "entries": [
+   {
+    "material": "tin",
+    "count": 5
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 5
+  }
+ },
+ {
+  "name": "summer-time midnight: 23:30 the day before is yesterday",
+  "now": 1774739400000,
+  "history": [
+   {
+    "ts": 1774737000000,
+    "material": "paper",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "z1"
+   },
+   {
+    "ts": 1774733400000,
+    "material": "glass",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "z2"
+   },
+   {
+    "ts": 1774729800000,
+    "material": "pet",
+    "count": 50,
+    "accepted": 50,
+    "batchId": "z3"
+   }
+  ],
+  "entries": [
+   {
+    "material": "tin",
+    "count": 5
+   }
+  ],
+  "expect": {
+   "ok": true,
+   "code": null,
+   "accepted": 5
+  }
+ }
+]

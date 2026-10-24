@@ -37,9 +37,12 @@ export function questContext(state, now = nowTs()) {
   return { range, items, materials: materials.size, verified, weeks: weeks.size, scans, dex, map };
 }
 
-export function questStatuses(state, now = nowTs()) {
+// Quests the server can verify from its own records (the others depend on data kept only on the device).
+export const SERVER_QUESTS = ['items', 'mix', 'verified', 'weeks'];
+
+export function questStatuses(state, now = nowTs(), only = null) {
   const ctx = questContext(state, now);
-  const list = QUESTS.map((q) => {
+  const list = QUESTS.filter((q) => !only || only.includes(q.id)).map((q) => {
     const progress = Math.min(q.target, q.measure(ctx));
     const claimId = `${ctx.range.key}:${q.id}`;
     return { ...q, progress, done: progress >= q.target, claimId, claimed: state.questClaims.includes(claimId) };

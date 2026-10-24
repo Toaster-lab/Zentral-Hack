@@ -1,4 +1,4 @@
-/* BubbleCycle — pastel, bubbly, readable. */
+/* RECYCL IT! — pastel, bubbly, readable. */
 :root {
   --mint: #c8f2df;
   --mint-strong: #1d7a57;
@@ -257,7 +257,7 @@ select { width: auto; cursor: pointer; }
 /* ---------- Sheet ---------- */
 .sheet-backdrop { position: fixed; inset: 0; background: rgba(29, 40, 56, .35); z-index: 1000; display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease; }
 .sheet {
-  width: 100%; max-width: 560px; max-height: 88dvh; overflow-y: auto;
+  width: 100%; max-width: 560px; max-height: 92%; overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg); border-radius: 28px 28px 0 0; padding: 8px 18px calc(24px + env(safe-area-inset-bottom));
   box-shadow: var(--shadow-lg); animation: sheet-up .28s cubic-bezier(.2,.9,.3,1.2) both;
 }

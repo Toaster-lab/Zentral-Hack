@@ -1,0 +1,14 @@
+# local data and tooling
+server/data/*.db
+server/data/*.db-*
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+tests/e2e/.artifacts/
+# generated for static hosting (python tools/build_precache.py)
+sw-manifest.js

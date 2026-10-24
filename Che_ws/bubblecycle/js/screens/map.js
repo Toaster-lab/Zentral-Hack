@@ -139,7 +139,7 @@ export default function MapScreen({ params }) {
       (err) => {
         setLocating(false);
         setNotice({ tone: 'peach', text: err.code === 1
-          ? 'Location access is turned off for BubbleCycle. No problem — search for a place instead, or allow location in your browser settings.'
+          ? 'Location access is turned off for this app. No problem — search for a place instead, or allow location in your browser settings.'
           : 'We couldn’t get your location just now. Try again, or search for a place.' });
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
