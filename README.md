@@ -14,6 +14,7 @@ We wanted to make recycling easier and more accessible by giving people a simple
 - Added a way to find recycling stations
 - Made it easy to search for different types of waste
 - Focused on making recycling more convenient
+- Build a buisness idea and pitches
 
 ## Collaborators
 - Thorben Che Koch
