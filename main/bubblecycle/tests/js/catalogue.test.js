@@ -46,9 +46,9 @@ test('every supplied barcode passes its check digit and nothing was silently cha
   assert(barcodeProblem('9016290').includes('digits'), 'a 7-digit code is reported');
 });
 
-test('Scan, Discover and the suggestions all list the same products: the three team drinks plus labelled examples', () => {
+test('Scan, Discover and the suggestions all list the same products: the three team drinks plus ~100 labelled example drinks', () => {
   const all = CATALOGUE.map((p) => p.barcode).sort();
-  equal([CATALOGUE.length, PRODUCTS.length, Object.keys(BARCODES).length, BARCODE_LIST.length], [16, 16, 16, 16]);
+  equal([CATALOGUE.length, PRODUCTS.length, Object.keys(BARCODES).length, BARCODE_LIST.length], [102, 102, 102, 102]);
   equal(Object.keys(BARCODES).sort(), all);
   equal(PRODUCTS.map((p) => p.barcode).sort(), all);
   equal(BARCODE_LIST.map((b) => b.code).sort(), all);
@@ -116,13 +116,13 @@ const search = (text) => { const q = parseQuery(text); return matchProducts(PROD
 const names = (r) => r.items.map((p) => p.name);
 
 test('Discover finds the drinks by name and type, and says so honestly when nothing fits', () => {
-  equal(names(search('Red Bull')), ['Red Bull']);
-  equal(names(search('energy drink')), ['Red Bull']);
+  assert(names(search('Red Bull')).includes('Red Bull'), 'Red Bull is found by name');
+  assert(names(search('energy drink')).includes('Red Bull') && names(search('energy drink')).includes('Monster Energy'), 'energy drinks list the energy drinks');
   assert(names(search('a soda')).includes('Limonade Minze Bio') && names(search('a soda')).includes('Cola'), 'a soda lists the sodas');
   assert(names(search('limonade')).includes('Limonade Minze Bio'), 'limonade finds the real drink');
   equal(names(search('Focus water')), ['Focus Water Reload']);
-  equal(names(search('salty snack gluten-free')), ['Potato crisps'], 'gluten-free hides the pretzels');
-  equal(names(search('chocolate nut-free')), [], 'every chocolate contains or may contain nuts, so none is offered');
+  equal(names(search('beer gluten-free')), [], 'every beer contains gluten, so none is offered');
+  equal(names(search('chocolate')), [], 'the range is drinks only, so there is no chocolate');
   equal(search('pizza').unknown, ['pizza']);
   equal(names(search('pizza')), []);
   equal(search('').nothingAsked, true);
@@ -232,15 +232,15 @@ test('device data from before the pilot is migrated without losing anything pers
     activities: [{ id: 'a1', batchId: 'b1', ts: Date.now(), material: 'glass', count: 3, accepted: 3, verification: 'self-reported', stationId: 'demo-glass-can', source: 'checkin', evidence: 'self' }],
     ledger: [{ id: 'l1', ts: Date.now(), points: 15, label: 'Recycled 3 × glass', type: 'earn' }],
     customProducts: { 4006381333931: { barcode: '4006381333931', name: 'Pencil case', components: [], collect: [], createdAt: 1 } },
-    scans: [{ ts: Date.now(), code: '2000000000992', source: 'demo' }],
-    collection: { 'glass-jar-sauce': { firstTs: 1, source: 'database', code: '2000000000992' } },
+    scans: [{ ts: Date.now(), code: '2000000099996', source: 'demo' }],
+    collection: { 'glass-jar-sauce': { firstTs: 1, source: 'database', code: '2000000099996' } },
     checkins: [{ id: 'c1', stationId: 'osm-n10653389684', stationName: 'Recycling container', status: 'counted', entries: [], flags: [] }],
   };
   await withKey('bubblecycle:v1', old, async () => {
     const fresh = await import('../../js/store.js?migration-test');
     const s = fresh.getState();
     equal([s.activities.length, s.ledger.length, s.checkins.length, Object.keys(s.collection).length, Object.keys(s.customProducts).length, s.scans.length], [1, 1, 1, 1, 1, 1], 'personal history is intact');
-    equal([s.profile.nickname, s.profile.useOpenFoodFacts, s.catalogueVersion], ['Mia', undefined, 'pilot-1']);
+    equal([s.profile.nickname, s.profile.useOpenFoodFacts, s.catalogueVersion], ['Mia', undefined, 'drinks-2']);
     equal(s.checkins[0].stationName, 'Recycling container', 'old records keep their own text and need no lookup');
     assert(isRetiredLocation(s.activities[0].stationId), 'the old station id is recognised as retired');
     const quest = questStatuses(s).list.find((q) => q.id === 'scans');

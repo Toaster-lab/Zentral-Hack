@@ -38,12 +38,12 @@ function ProductRow({ p, municipality }) {
           ? p.labels.map((l) => html`<span class=${`tag ${l.verified ? 'tag-verified' : 'tag-unverified'}`}>${l.name}${l.verified ? '' : ' (unverified)'}</span> `)
           : html`<span class="muted">Certifications: not available</span>`}</p>
       </div>
-      <p class="price">${p.priceChf != null ? html`<strong>${fmtCHF(p.priceChf)}</strong>` : html`<span class="muted small">Price not available</span>`}</p>
+      <p class="price">${p.priceChf != null ? html`<strong>${p.priceEstimate ? '~' : ''}${fmtCHF(p.priceChf)}</strong>${p.priceEstimate ? html`<br /><span class="muted small">estimate</span>` : ''}` : html`<span class="muted small">Price not available</span>`}</p>
     </div>
     <p class="small muted">${p.source === 'sample' ? html`<${DemoTag}>Example product<//> ${EXAMPLE_NOTE}.` : html`${TEAM_SOURCE}.${p.exampleDetails ? ` ${EXAMPLE_DETAILS_NOTE}` : ''}`}${migros ? html` Source: Migros (${migros.fields.join(', ')}), retrieved ${migros.retrievedAt}: <a href=${migros.url} target="_blank" rel="noopener noreferrer">${new URL(migros.url).hostname}</a>.` : ''}</p>
     <button class="link-btn small" aria-expanded=${open ? 'true' : 'false'} onClick=${() => setOpen(!open)}>${open ? 'Hide details' : 'What to do with the packaging'}</button>
     ${open && html`<div class="stack-sm details">
-      <div><h4 class="small-h">After you’re done</h4><ul>${p.packaging.filter((pk) => pk.material).map((pk) => html`<li class="small"><strong>${pk.part}:</strong> ${guidanceFor(pk.material, municipality).where}</li>`)}</ul></div>
+      <div><h4 class="small-h">How to recycle it</h4>${p.recycling ? html`<p class="small">${p.recycling}</p>` : ''}<ul>${p.packaging.filter((pk) => pk.material).map((pk) => html`<li class="small"><strong>${pk.part}:</strong> ${guidanceFor(pk.material, municipality).where}</li>`)}</ul></div>
       <p class="small">${p.allergens ? (p.allergens.length ? `Contains: ${p.allergens.map(allergenLabel).join(', ')}.` : 'Contains none of the listed allergens.') : 'Allergens: not available.'}
         ${p.mayContain && p.mayContain.length > 0 ? ` May contain: ${p.mayContain.map(allergenLabel).join(', ')}.` : ''}</p>
       <p class="small">${p.ingredients ? html`<strong>Ingredients:</strong> ${p.ingredients}` : 'Ingredients: not available.'}</p>

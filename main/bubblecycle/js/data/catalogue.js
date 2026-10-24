@@ -11,8 +11,9 @@
 //    Only fields that arrive that way carry "Source: Migros", with the page they came from and the retrieval date.
 import { eanCheckDigit, normaliseBarcode } from '../utils.js';
 import { MIGROS_IMPORT } from './migros-import.js';
+import { DRINK_ROWS } from './drinks.js';
 
-export const CATALOGUE_VERSION = 'pilot-1';
+export const CATALOGUE_VERSION = 'drinks-2';
 
 export const TEAM_SOURCE = 'Product details supplied by the team';
 export const TEAM_LOCATION_SOURCE = 'Location supplied by the team';
@@ -24,8 +25,10 @@ export const ALLERGENS = [
 ];
 
 const PACKAGING = {
-  aluminium_can: { components: [{ part: 'Can', material: 'aluminium' }], label: 'Aluminium can' },
-  pet_bottle: { components: [{ part: 'Bottle', material: 'pet' }], label: 'PET bottle' },
+  aluminium_can: { components: [{ part: 'Can', material: 'aluminium' }], label: 'Aluminium can',
+    how: 'Empty it, squash it flat and put it in the aluminium and tin collection.' },
+  pet_bottle: { components: [{ part: 'Bottle', material: 'pet' }], label: 'PET bottle',
+    how: 'Empty it, squash it flat and screw the cap back on. Return it to the PET point at any supermarket.' },
 };
 
 // Barcodes are strings: the 8-digit one is valid as it is, and none may ever be turned into a number.
@@ -39,28 +42,13 @@ const SUPPLIED = [
     example: { priceChf: 1.6, diet: 'vegan', allergens: [], mayContain: [], tags: ['sweet'] } },
 ];
 
-// EXAMPLE products: invented to make the pilot feel like a real range. Barcodes use the GS1 internal prefix 200…, so they can
-// never clash with a real product. Not from Migros, not verified, prices illustrative.
-const part = (p, material) => ({ part: p, material });
-const SAMPLES = [
-  ['Cola', '500 ml', 'PET bottle', [part('Bottle', 'pet'), part('Cap', 'pet')], 'soda', ['pet-soda-05'], 1.4, 'vegan', [], [], ['sweet']],
-  ['Lemon soda', '1.5 L', 'PET bottle', [part('Bottle', 'pet'), part('Cap', 'pet')], 'soda', ['pet-soda-15'], 1.6, 'vegan', [], [], ['sweet', 'fruity']],
-  ['Sparkling mineral water', '1.5 L', 'PET bottle', [part('Bottle', 'pet'), part('Cap', 'pet')], 'water_tea', ['pet-water-15'], 0.8, 'vegan', [], [], []],
-  ['Peach iced tea', '1.5 L', 'PET bottle', [part('Bottle', 'pet'), part('Cap', 'pet')], 'water_tea', ['pet-tea'], 1.9, 'vegan', [], [], ['sweet', 'fruity']],
-  ['Orange juice', '1 L', 'Drink carton', [part('Carton', 'beverage_carton'), part('Cap', 'mixed_plastic')], 'juice', ['carton-1l'], 2.5, 'vegan', [], [], ['sweet', 'fruity']],
-  ['Apple juice', '1 L', 'Glass bottle', [part('Bottle', 'glass'), part('Lid', 'tin')], 'juice', ['glass-juice'], 2.3, 'vegan', [], [], ['sweet', 'fruity']],
-  ['Dark chocolate 72 %', '100 g', 'Paper and foil wrapper', [part('Outer wrapper', 'paper'), part('Inner foil', 'aluminium')], 'chocolate', [], 2.4, 'vegan', ['soy'], ['milk', 'nuts'], ['sweet']],
-  ['Milk chocolate with hazelnuts', '100 g', 'Plastic wrapper', [part('Flow wrap', 'mixed_plastic')], 'chocolate', [], 2.1, 'vegetarian', ['milk', 'nuts', 'soy'], [], ['sweet']],
-  ['Potato crisps', '170 g', 'Plastic bag', [part('Bag', 'mixed_plastic')], 'snacks', [], 2.8, 'vegan', [], [], ['salty']],
-  ['Pretzels', '200 g', 'Plastic bag', [part('Bag', 'mixed_plastic')], 'snacks', [], 2.2, 'vegan', ['gluten'], [], ['salty']],
-  ['Muesli', '750 g', 'Cardboard box', [part('Box', 'cardboard'), part('Inner bag', 'mixed_plastic')], 'breakfast', ['cardboard-cereal'], 4.5, 'vegan', ['gluten'], ['nuts'], []],
-  ['Peach yoghurt', '180 g', 'Plastic cup', [part('Cup', 'mixed_plastic'), part('Lid', 'aluminium')], 'dairy', ['al-lid'], 0.9, 'vegetarian', ['milk'], [], ['sweet', 'fruity']],
-  ['Strawberry jam', '340 g', 'Glass jar', [part('Jar', 'glass'), part('Lid', 'tin')], 'breakfast', ['glass-jar-jam'], 2.6, 'vegan', [], [], ['sweet']],
-].map(([name, size, packagingLabel, components, category, collect, priceChf, diet, allergens, mayContain, tags], i) => {
-  const body = String(200000000001 + i);
-  return { barcode: body + eanCheckDigit(body), name, size, packagingLabel, components, category, collect, sample: true, example: { priceChf, diet, allergens, mayContain, tags } };
-});
-
+// EXAMPLE drinks: ~100 everyday drinks in data/drinks.js. Their barcodes are placeholders (GS1 internal prefix 200…), so they can
+// never clash with a real product, until a real EAN is put in the `code` column there. Prices are estimates.
+const SAMPLES = DRINK_ROWS.map((d) => ({
+  barcode: d.barcode, name: d.name, size: d.size, packagingLabel: d.packagingLabel, components: d.components, category: d.category,
+  collect: d.collect, recycling: d.recycling, sample: true,
+  example: { priceChf: d.priceChf, diet: d.diet, allergens: d.allergens, mayContain: [], tags: d.tags },
+}));
 
 export const PILOT_LOCATION = Object.freeze({
   id: 'rotkreuz-pet-aluminium-point',
@@ -165,8 +153,9 @@ function build(p) {
   const from = (name) => (name in f ? { source: 'migros', url: imported.url, retrievedAt: imported.retrievedAt } : null);
   const pick = (name) => (name in f ? f[name] : ex[name] ?? null);   // official Migros field > example detail > unknown
   return Object.freeze({
-    id: `p-${p.barcode}`, barcode: p.barcode, name: p.name, size: p.size, category: p.category,
+    id: `p-${p.barcode}`, barcode: p.barcode, name: p.name, size: p.size, category: p.category, recycling: p.recycling || pack?.how || null,
     packagingLabel: p.packagingLabel || pack.label, components: components.map((c) => ({ ...c })), packaging: components.map((c) => ({ ...c })), collect: [...p.collect],
+    priceEstimate: !!p.sample,
     // null means "not available" (never "none"). Example details are made up; only an official import overrides them.
     priceChf: pick('priceChf'), diet: pick('diet'), allergens: pick('allergens'), mayContain: pick('mayContain'),
     ingredients: f.ingredients ?? null, photo: f.photo ?? null,

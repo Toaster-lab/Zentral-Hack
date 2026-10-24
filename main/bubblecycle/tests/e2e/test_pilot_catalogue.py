@@ -34,7 +34,7 @@ def test_scan_suggestions_lead_with_the_three_drinks_and_examples_are_behind_a_t
     codes = page.locator('.demo-code .mono').all_inner_texts()
     assert sorted(codes) == sorted(DRINKS)
     page.get_by_role('button', name=re.compile('more example barcodes')).click()
-    assert page.locator('.demo-code').count() == 16
+    assert page.locator('.demo-code').count() == 102
 
 
 def test_an_unknown_or_mistyped_barcode_gets_a_clear_message_and_no_outside_lookup(make_page, local_app):
@@ -55,7 +55,7 @@ def test_discover_labels_example_products_and_team_drinks_honestly(make_page, lo
     page.goto(local_app.url + '#/discover')
     page.get_by_placeholder('For example').fill('Red Bull')
     page.get_by_role('button', name='Search').click()
-    row = page.locator('.product-row')
+    row = page.locator('.product-row').filter(has=page.get_by_role('heading', name='Red Bull', exact=True)).filter(has_text='250 ml')
     expect(row).to_have_count(1)
     expect(row).to_contain_text('Red Bull')
     expect(row).to_contain_text('250 ml')
@@ -128,7 +128,7 @@ def test_old_stored_data_neither_brings_back_old_places_and_products_nor_loses_a
     page.get_by_role('button', name='Look it up').click()
     expect(page.get_by_text('Not in this pilot catalogue')).to_be_visible()
     kept = page.evaluate("JSON.parse(localStorage.getItem('bubblecycle:v1'))")
-    assert kept['customProducts'] and kept['activities'][0]['stationId'] == 'demo-glass-can' and kept['catalogueVersion'] == 'pilot-1'
+    assert kept['customProducts'] and kept['activities'][0]['stationId'] == 'demo-glass-can' and kept['catalogueVersion'] == 'drinks-2'
     assert page.errors == []
 
 

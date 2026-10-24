@@ -146,6 +146,8 @@ function Result({ product, municipality, place, onReset, unlocked = [] }) {
       </div>
     </section>
 
+    ${product.recycling && html`<section class="card"><h3>How to recycle it</h3><p class="small">${product.recycling}</p></section>`}
+
     ${unlocked.length > 0 && html`<p class="note tone-mint" role="status"><span>New in your Bottledex: <strong>${unlocked.map((id) => dexEntry(id)?.name).filter(Boolean).join(', ')}</strong>. <button class="link-btn" onClick=${() => navigate('collection')}>See the collection</button></span></p>`}
 
     <div class="row between center muni-row">
