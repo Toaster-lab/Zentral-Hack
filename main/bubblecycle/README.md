@@ -62,7 +62,7 @@ separate storage key, so their balances never mix.
 - **Rewards:** spend points on demo badges and vouchers; spending points never changes your leaderboard rank.
 - **Leaderboard:** weekly or monthly, ranked by accepted items (not points), opt-in with a nickname.
 - **Activity:** your log, points history, check-ins and anything saved offline that hasn't been sent.
-- **Quests, Bottledex, Social:** optional monthly goals, a collection of container types, and friends/challenges/streaks (simulated people).
+- **Quests, Bottledex, Social:** optional monthly goals, a collection of container types, and friends and challenges with a streak card (simulated people).
 - **Collection calendar:** upcoming collections for Rotkreuz with material filters, an optional in-app reminder and an `.ics` export.
 - **Profile:** account (server version), nickname, municipality, weekly goal, privacy, install. Developer tools are not part of the app's
   screens: they live at `#/dev` and do nothing on a live server.

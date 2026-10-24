@@ -143,22 +143,22 @@ hints. If you ask for something the demo can't match (e.g. "pizza") it says so i
 ## Social: friends, challenges and streaks
 
 The **Social** tab is in the bottom bar; Profile, rewards and settings are behind the avatar button at the top right. Social is opt-in:
-nothing is shared until you set up a profile, and everything is off by default (totals, streaks, milestones). *Leave Social* removes it
+nothing is shared until you set up a profile, and sharing is off by default (one "Share my progress" switch). *Leave Social* removes it
 again.
 
 - **Friends:** nickname + avatar + exact username. Add by exact username search (no browsing or prefix search; non-discoverable people
-  return the same "not found"), by invite link (`#/social?add=username`) or QR code. Friend requests with accept/decline, cancel, remove,
-  block/unblock, and report. Reactions are presets only ("Nice work!", 🌿, 🎉, "Keep going!"). No messaging.
+  return the same "not found"), or invite link (`#/social?add=username`). Friend requests with accept/decline, cancel, remove,
+  block/unblock, and report. No messaging or reactions.
 - **Challenges:** weekly or monthly, "this" or "next", with Europe/Zurich boundaries; invited friends must accept (the join screen explains
   what participants will and won't see). Ranked by **eligible items logged during the challenge** (never lifetime totals or points). Only
   activity after the start *and* after you joined counts, each log once. A challenge is either **Self-reported** (every eligible item
   counts, verified ones are marked) or **Verified only** (receipt-code items), so everyone is compared the same way. Household rubbish is
   not a recyclable material, so it never counts. When a challenge ends the result is frozen; finishing with at least one eligible item
   earns a digital badge (no points).
-- **Streaks:** a week (Mon–Sun, Zurich) counts if it has at least one eligible logged activity. Shows current and longest streak, this
+- **Streaks:** shown as a card at the top of Friends. A week (Mon–Sun, Zurich) counts if it has at least one eligible logged activity. Shows current and longest streak, this
   week's status, and recent weeks. A streak ends only after a full week passes, with supportive wording ("A fresh week, a fresh start.").
   Optional in-app reminders can be turned off. Copy avoids pushing purchases or extra trips.
-- **Privacy:** friends see only what you allow (totals this week, streaks, milestones). Never places, visit times or movement history.
+- **Privacy:** friends see only what you allow (one switch: totals this week and streak). Never places, visit times or movement history.
   Milestones carry no times beyond "days ago". Leaderboard nicknames remain a separate opt-in.
 - **Time:** weeks, months, challenge boundaries and daily log limits all use Europe/Zurich, DST-aware.
 

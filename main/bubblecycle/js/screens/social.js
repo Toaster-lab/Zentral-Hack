@@ -2,17 +2,14 @@ import { html, useEffect, useState } from '../lib.js';
 import { Header, Icon, Avatar, Segmented, Sheet, Skeleton, StateCard, Toggle, DemoTag, toast } from '../ui.js';
 import { useSocialData } from './social-data.js';
 import { ChallengesTab } from './challenges.js';
-import { StreaksTab } from './streaks.js';
-import { useStore, updateSocial, updateSocialPrivacy, leaveSocial } from '../store.js';
-import { findUser, sendRequest, respondRequest, cancelRequest, removeFriend, blockUser, unblockUser, reportUser, react } from '../services/index.js';
-import { REACTIONS, AVATAR_TONES, REPORT_REASONS, cleanUsername, usernameError, nicknameError } from '../logic/social.js';
+import { useMyStreaks } from './streaks.js';
+import { useStore, updateSocial, updateSocialPrivacy, updateReminders, leaveSocial } from '../store.js';
+import { findUser, sendRequest, respondRequest, cancelRequest, removeFriend, blockUser, unblockUser, reportUser } from '../services/index.js';
+import { AVATAR_TONES, REPORT_REASONS, cleanUsername, usernameError, nicknameError, streakMessage } from '../logic/social.js';
 import { DEMO_USERS } from '../data/social-demo.js';
 import { clockOffset } from '../logic/clock.js';
-import { loadScript } from '../utils.js';
 
-const QR_SRC = 'vendor/qrcode.min.js';
 const inviteLink = (username) => `${location.origin}${location.pathname}#/social?add=${encodeURIComponent(username)}`;
-const dayLabel = (n) => (n === 0 ? 'today' : n === 1 ? 'yesterday' : `${n} days ago`);
 
 // ---- Profile setup (also used for editing) ---------------------------------------
 
@@ -21,7 +18,7 @@ function SetupForm({ initial, submitLabel, onSave, onCancel, onLeave }) {
   const [nickname, setNickname] = useState(initial.nickname || profileNick || '');
   const [username, setUsername] = useState(initial.username || '');
   const [avatar, setAvatar] = useState(initial.avatar);
-  const [privacy, setPrivacy] = useState(initial.privacy);
+  const [share, setShare] = useState(Boolean(initial.privacy.totals || initial.privacy.streaks || initial.privacy.milestones));
   const [err, setErr] = useState({});
 
   function submit(e) {
@@ -33,7 +30,7 @@ function SetupForm({ initial, submitLabel, onSave, onCancel, onLeave }) {
     else if (u !== initial.username && DEMO_USERS.some((d) => d.username === u)) errors.username = 'That username is taken. Try another one.';
     setErr(errors);
     if (Object.keys(errors).length) return;
-    onSave({ nickname: n, username: u, avatar: { tone: avatar.tone, initial: n[0].toUpperCase() }, privacy });
+    onSave({ nickname: n, username: u, avatar: { tone: avatar.tone, initial: n[0].toUpperCase() }, privacy: { totals: share, streaks: share, milestones: share } });
   }
 
   return html`<form class="stack" onSubmit=${submit} novalidate>
@@ -50,10 +47,8 @@ function SetupForm({ initial, submitLabel, onSave, onCancel, onLeave }) {
 
     <section class="card-inset stack-sm">
       <h3 class="small-h">What can friends see?</h3>
-      <p class="muted small">Everything is off until you choose. You can change this any time.</p>
-      <${Toggle} checked=${privacy.totals} onChange=${(v) => setPrivacy({ ...privacy, totals: v })} label="My recycling totals" description="Items recycled this week." />
-      <${Toggle} checked=${privacy.streaks} onChange=${(v) => setPrivacy({ ...privacy, streaks: v })} label="My streaks" description="Current and longest weekly streak." />
-      <${Toggle} checked=${privacy.milestones} onChange=${(v) => setPrivacy({ ...privacy, milestones: v })} label="My milestones" description="e.g. “Reached 50 items”. Never places or times." />
+      <p class="muted small">Off until you choose. You can change this any time.</p>
+      <${Toggle} checked=${share} onChange=${setShare} label="Share my progress" description="Items recycled this week and your weekly streak. Never places or times." />
     </section>
     <p class="note tone-sky small"><${Icon} name="shield" size=${18} /> <span>Friends never see where or when you recycled. Challenges have their own rules, which are explained before you join.</span></p>
     <div class="row gap">${onCancel && html`<button type="button" class="btn btn-ghost" onClick=${onCancel}>Cancel</button>`}<button class="btn btn-primary" type="submit">${submitLabel}</button></div>
@@ -69,7 +64,7 @@ function Onboarding({ onDone }) {
       <h2>Recycle with friends</h2>
       <p>Add friends, join weekly or monthly challenges and keep a weekly streak. It is optional, and the rest of RECYCL IT! works without it.</p>
       <ul class="check-list">
-        <li>No chat, only a few preset reactions</li><li>You choose what friends can see</li><li>Places and times are never shared</li>
+        <li>No chat or messaging</li><li>You choose what friends can see</li><li>Places and times are never shared</li>
       </ul>
       ${!open && html`<button class="btn btn-primary" style="align-self:flex-start" onClick=${() => setOpen(true)}>Set up a social profile</button>`}
     </section>
@@ -80,32 +75,10 @@ function Onboarding({ onDone }) {
 
 // ---- Friends ---------------------------------------------------------------------
 
-function QrSheet({ username, onClose }) {
-  const [state, setState] = useState({ status: 'loading', svg: '' });
-  useEffect(() => {
-    let alive = true;
-    loadScript(QR_SRC).then(() => {
-      const qr = window.qrcode(0, 'M'); qr.addData(inviteLink(username)); qr.make();
-      if (alive) setState({ status: 'ready', svg: qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }) });
-    }).catch(() => alive && setState({ status: 'error', svg: '' }));
-    return () => { alive = false; };
-  }, []);
-  return html`<${Sheet} open=${true} onClose=${onClose} title="My QR code">
-    <div class="stack center">
-      ${state.status === 'loading' && html`<p class="muted">Making your code…</p>`}
-      ${state.status === 'error' && html`<p class="note tone-peach" role="alert">The QR code couldn’t be made (it needs an internet connection). You can still share your invite link.</p>`}
-      ${state.status === 'ready' && html`<div class="qr-box" role="img" aria-label=${`QR code that opens RECYCL IT! to add @${username}`} dangerouslySetInnerHTML=${{ __html: state.svg }}></div>`}
-      <p>Show this to a friend. Their phone camera opens a link to add <strong>@${username}</strong>.</p>
-      <p class="muted small">Anyone with this code can send you a request, but you always choose whether to accept.</p>
-    </div>
-  <//>`;
-}
-
 function AddFriend({ me, initial, onChanged }) {
   const [text, setText] = useState(initial || '');
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [qr, setQr] = useState(false);
   const link = inviteLink(me.username);
 
   async function search(q = text) {
@@ -144,9 +117,7 @@ function AddFriend({ me, initial, onChanged }) {
       <span class="strong small">Or share your invite</span>
       <div class="row gap"><input class="link-input" type="text" readonly value=${link} aria-label="Your invite link" onFocus=${(e) => e.target.select()} />
         <button class="btn btn-ghost btn-sm" style="flex:none" onClick=${copy}><${Icon} name="copy" size=${18} /> Copy</button></div>
-      <button class="btn btn-ghost btn-sm" onClick=${() => setQr(true)}><${Icon} name="qr" size=${18} /> Show my QR code</button>
     </div>
-    ${qr && html`<${QrSheet} username=${me.username} onClose=${() => setQr(false)} />`}
   </section>`;
 }
 
@@ -178,22 +149,27 @@ function ManageSheet({ friend, onClose, onChanged }) {
   <//>`;
 }
 
-function ReactionBar({ itemId, reacted, onChanged }) {
-  const [busy, setBusy] = useState(false);
-  async function toggle(key) {
-    setBusy(true);
-    try { await react({ itemId, key }); onChanged(); } catch (e) { toast(e.message, 'peach'); } finally { setBusy(false); }
-  }
-  return html`<div class="reaction-bar" role="group" aria-label="Send a reaction">
-    ${REACTIONS.map((r) => html`<button type="button" class=${`react-btn ${reacted.includes(r.key) ? 'selected' : ''}`} disabled=${busy} aria-pressed=${reacted.includes(r.key) ? 'true' : 'false'} aria-label=${r.label} onClick=${() => toggle(r.key)}>
-      ${r.glyph ? html`<span aria-hidden="true">${r.glyph}</span><span class="sr-only">${r.label}</span>` : r.label}</button>`)}
-  </div>`;
+function MyStreak() {
+  const st = useMyStreaks();
+  const badges = useStore().social.badges;
+  return html`<section class="card streak-card tone-mint stack-sm">
+    <div class="streak-main">
+      <div class=${`streak-bubble ${st.current > 0 ? 'on' : ''}`} aria-hidden="true"><strong>${st.current}</strong><span class="small">week${st.current === 1 ? '' : 's'}</span></div>
+      <div class="stack-sm">
+        <h2>Your streak</h2>
+        <p class="small">Longest: <strong>${st.longest}</strong> · <span class=${`tag ${st.thisDone ? 'tag-verified' : 'tag-pending'}`}>${st.thisDone ? 'This week done' : 'This week open'}</span></p>
+      </div>
+    </div>
+    <p aria-live="polite">${streakMessage(st)}</p>
+    ${badges.length > 0 && html`<div class="chip-wrap">${badges.map((b) => html`<span class="chip tone-lavender">${b.name}</span>`)}</div>`}
+  </section>`;
 }
 
 function FriendsTab({ data, me, refresh, addParam }) {
   const [manage, setManage] = useState(null);
   const run = async (fn, okMsg) => { try { const r = await fn(); if (r.ok === false) toast(r.error, 'peach'); else if (okMsg) toast(okMsg); refresh(); } catch (e) { toast(e.message, 'peach'); } };
   return html`<div class="stack">
+    <${MyStreak} />
     ${data.incoming.length > 0 && html`<section class="card stack-sm"><h3>Friend requests <span class="tag tag-pending">${data.incoming.length}</span></h3>
       ${data.incoming.map((r) => html`<div class="friend-found" key=${r.id}><${Avatar} avatar=${r.user.avatar} size=${44} />
         <span class="grow"><strong>${r.user.nickname}</strong><span class="muted small block">@${r.user.username} · <${DemoTag}>Simulated<//></span></span>
@@ -208,7 +184,7 @@ function FriendsTab({ data, me, refresh, addParam }) {
         <button class="btn btn-ghost btn-sm" style="flex:none" onClick=${() => run(() => cancelRequest({ id: o.id }), 'Request cancelled')}>Cancel</button></div>`)}</section>`}
 
     <section class="section"><h2>Friends${data.friends.length > 0 ? ` (${data.friends.length})` : ''}</h2>
-      ${data.friends.length === 0 && html`<p class="muted">No friends yet. Add someone by their exact username, an invite link or a QR code. In this demo, try <strong>@minty_marta</strong> or <strong>@alu_andri</strong>.</p>`}
+      ${data.friends.length === 0 && html`<p class="muted">No friends yet. Add someone by their exact username or an invite link. In this demo, try <strong>@minty_marta</strong> or <strong>@alu_andri</strong>.</p>`}
       <div class="list">
       ${data.friends.map((f) => html`<div class="list-row" key=${f.id}>
         <${Avatar} avatar=${f.avatar} size=${44} />
@@ -220,14 +196,6 @@ function FriendsTab({ data, me, refresh, addParam }) {
       </div>`)}
       </div>
     </section>
-
-    ${data.friends.length > 0 && html`<section class="section"><h2>Shared milestones</h2>
-      ${data.feed.length === 0 ? html`<p class="muted">Nothing shared yet. When friends choose to share milestones, they appear here.</p>`
-        : html`<div class="list">${data.feed.map((i) => html`<div class="list-row feed-item" key=${i.id}>
-          <${Avatar} avatar=${i.user.avatar} size=${40} />
-          <div class="grow"><p><strong>${i.user.nickname}</strong> ${i.text.charAt(0).toLowerCase() + i.text.slice(1)}</p><p class="muted small">${dayLabel(i.daysAgo)}</p>
-            <${ReactionBar} itemId=${i.id} reacted=${i.reacted} onChanged=${refresh} /></div></div>`)}</div>`}
-      <p class="muted small">Only milestones friends choose to share appear here, never places or times. Reactions are presets; there is no messaging.</p></section>`}
 
     ${data.blocked.length > 0 && html`<details class="card"><summary><strong>Blocked (${data.blocked.length})</strong></summary>
       <div class="stack-sm" style="margin-top:12px">${data.blocked.map((b) => html`<div class="friend-found" key=${b.id}><${Avatar} avatar=${b.avatar} size=${36} /><span class="grow"><strong>${b.nickname}</strong></span>
@@ -248,25 +216,27 @@ export default function Social({ params }) {
   const { status, data, error, refresh, retry } = useSocialData();
   const off = clockOffset();
 
-  if (!soc.enabled) return html`<div class="screen social-screen"><${Header} title="Social" subtitle="Friends, challenges and streaks" /><${Onboarding} /></div>`;
+  if (!soc.enabled) return html`<div class="screen social-screen"><${Header} title="Social" subtitle="Friends and challenges" /><${Onboarding} /></div>`;
 
   const me = { username: soc.username, nickname: soc.nickname };
   return html`<div class="screen social-screen">
-    <${Header} title="Social" subtitle="Friends, challenges and streaks"
+    <${Header} title="Social" subtitle="Friends and challenges"
       right=${html`<button class="icon-btn" aria-label="Social settings and privacy" onClick=${() => setEditing(true)}><${Icon} name="settings" size=${22} /></button>`} />
     ${off > 0 && html`<p class="note tone-peach small"><${Icon} name="clock" size=${18} /> Demo clock is ${Math.round(off / 86400000)} days ahead (Profile › Developer).</p>`}
-    <${Segmented} label="Social sections" value=${tab} onChange=${setTab} options=${[{ value: 'friends', label: 'Friends', icon: 'users' }, { value: 'challenges', label: 'Challenges', icon: 'trophy' }, { value: 'streaks', label: 'Streaks', icon: 'leaf' }]} />
+    <${Segmented} label="Social sections" value=${tab} onChange=${setTab} options=${[{ value: 'friends', label: 'Friends', icon: 'users' }, { value: 'challenges', label: 'Challenges', icon: 'trophy' }]} />
     <p class="note tone-sky small"><${Icon} name="info" size=${18} /> <span><strong>Demo:</strong> other people here are simulated and respond after a few seconds. Real friends need accounts and a server.</span></p>
 
-    ${tab !== 'streaks' && status === 'loading' && !data && html`<${Skeleton} lines=${3} /><${Skeleton} lines=${3} />`}
-    ${tab !== 'streaks' && status === 'error' && !data && html`<${StateCard} icon="alert" tone="peach" title="Couldn’t load Social" action=${html`<button class="btn btn-primary btn-sm" onClick=${retry}><${Icon} name="refresh" size=${18} /> Try again</button>`}>${error}<//>`}
+    ${status === 'loading' && !data && html`<${Skeleton} lines=${3} /><${Skeleton} lines=${3} />`}
+    ${status === 'error' && !data && html`<${StateCard} icon="alert" tone="peach" title="Couldn’t load Social" action=${html`<button class="btn btn-primary btn-sm" onClick=${retry}><${Icon} name="refresh" size=${18} /> Try again</button>`}>${error}<//>`}
     ${status === 'error' && data && html`<p class="note tone-peach small" role="alert"><${Icon} name="alert" size=${18} /> Couldn’t refresh just now (${error}). Showing what we had.</p>`}
 
     ${data && tab === 'friends' && html`<${FriendsTab} data=${data} me=${me} refresh=${refresh} addParam=${params.get('add') || ''} />`}
     ${data && tab === 'challenges' && html`<${ChallengesTab} data=${data} refresh=${refresh} />`}
-    ${tab === 'streaks' && html`<${StreaksTab} onEditPrivacy=${() => setEditing(true)} />`}
 
     ${editing && html`<${Sheet} open=${true} onClose=${() => setEditing(false)} title="Social settings">
+      <section class="card-inset stack-sm">
+        <${Toggle} checked=${soc.reminders.on} onChange=${(v) => updateReminders({ on: v })} label="Remind me if my week is still open" description="A quiet note on the home screen. Off by default." />
+      </section>
       <${SetupForm} initial=${soc} submitLabel="Save" onCancel=${() => setEditing(false)} onSave=${(v) => { updateSocial({ nickname: v.nickname, username: v.username, avatar: v.avatar }); updateSocialPrivacy(v.privacy); setEditing(false); toast('Saved'); }} onLeave=${() => { setEditing(false); setConfirmLeave(true); }} /><//>`}
     ${confirmLeave && html`<${Sheet} open=${true} onClose=${() => setConfirmLeave(false)} title="Leave Social?">
       <div class="stack"><p>Your social profile and sharing choices will be removed from this device. Your recycling activity, points and rewards stay exactly as they are.</p>
