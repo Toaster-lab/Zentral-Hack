@@ -9,7 +9,7 @@ APP_ROOT = Path(__file__).resolve().parent.parent  # the folder holding index.ht
 
 @dataclass
 class Settings:
-    mode: str = 'demo'                    # 'demo' or 'live'. Each mode has its own database; they never mix.
+    mode: str = 'demo'                    # 'demo' or 'live' (from_env requires BC_MODE to be set). Each mode has its own database; they never mix.
     host: str = '127.0.0.1'
     port: int = 5174
     origin: str = 'http://localhost:5174'  # exact origin users open; WebAuthn checks it
@@ -30,9 +30,9 @@ class Settings:
 
 def from_env(env=None) -> Settings:
     env = os.environ if env is None else env
-    mode = env.get('BC_MODE', 'demo').lower()
-    if mode not in ('demo', 'live'):
-        raise SystemExit('BC_MODE must be "demo" or "live".')
+    mode = env.get('BC_MODE', '').lower()
+    if mode not in ('demo', 'live'):  # no default: forgetting it must never silently start a demo server
+        raise SystemExit('Set BC_MODE to "demo" or "live".')
     port = int(env.get('BC_PORT', '5174'))
     origin = env.get('BC_ORIGIN', f'http://localhost:{port}').rstrip('/')
     s = Settings(

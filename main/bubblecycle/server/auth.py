@@ -32,8 +32,8 @@ def _id(prefix: str) -> str:
 
 
 def nickname_error(n: str) -> str:
-    if not NICKNAME_RE.fullmatch(n or ''):
-        return '3–20 letters, numbers, spaces, dots, dashes or underscores.'
+    if not isinstance(n, str) or n != n.strip() or not NICKNAME_RE.fullmatch(n) or not re.search(r'[^\W_]', n):
+        return '3–20 letters, numbers, spaces, dots, dashes or underscores, with at least one letter or number.'
     if re.search(r'@|\d{6,}', n):
         return 'Please don’t use an email address or phone number.'
     return ''
@@ -71,6 +71,9 @@ def end_session(svc, token: str | None):
 
 def _new_challenge(c, svc, kind, user_id=None, purpose=None, keys=None, nickname=None, ttl_s=300):
     cid, challenge, now = _id('ch_'), b64u(secrets.token_bytes(32)), svc.now()
+    # Housekeeping. The margin keeps a passed confirmation (usable 2 minutes after its check) alive.
+    c.execute('DELETE FROM challenges WHERE expires_at < ?', (now - 600_000,))
+    c.execute('DELETE FROM sessions WHERE expires_at < ?', (now,))
     c.execute('INSERT INTO challenges (id, kind, user_id, challenge, purpose, keys_json, nickname, created_at, expires_at) VALUES (?,?,?,?,?,?,?,?,?)',
               (cid, kind, user_id, challenge, purpose, json.dumps(keys or []), nickname, now, now + ttl_s * 1000))
     return cid, challenge
@@ -122,7 +125,7 @@ def registration_verify(svc, body: dict):
             raise ApiError(409, 'passkey_exists', 'That passkey is already registered.')
         uid, now = _id('u_'), svc.now()
         nick = row['nickname']
-        if nick and c.execute('SELECT 1 FROM users WHERE lower(nickname) = lower(?)', (nick,)).fetchone():
+        if nick and c.execute('SELECT 1 FROM users WHERE casefold(nickname) = casefold(?)', (nick,)).fetchone():
             nick = None
         c.execute('INSERT INTO users (id, created_at, nickname, leaderboard_opt_in, is_demo) VALUES (?,?,?,?,0)', (uid, now, nick, 0))
         c.execute('INSERT INTO credentials VALUES (?,?,?,?,?,?,?)',

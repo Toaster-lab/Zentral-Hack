@@ -18,7 +18,7 @@ Settings are environment variables (copy `.env.example`):
 
 | Variable | Meaning |
 |---|---|
-| `BC_MODE` | `demo` (default) or `live`. Each mode has its **own database file**; a database made in one mode is refused in the other, so demo and live balances can never mix. |
+| `BC_MODE` | `demo` or `live` (required; the server refuses to start without it). Each mode has its **own database file**; a database made in one mode is refused in the other, so demo and live balances can never mix. |
 | `BC_ORIGIN` | The exact address people open, for example `https://staging.example.com`. Passkeys are checked against it. |
 | `BC_RP_ID` | The site's domain, for example `staging.example.com` (defaults to the host of `BC_ORIGIN`). |
 | `BC_DB` | Database file. Back this file up; it holds all accounts, activity and points. |

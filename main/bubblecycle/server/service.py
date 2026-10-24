@@ -60,6 +60,13 @@ class Service:
     def balance(self, c, user_id: str) -> int:
         return c.execute('SELECT COALESCE(SUM(points), 0) FROM ledger WHERE user_id = ?', (user_id,)).fetchone()[0]
 
+    def verified_spendable(self, c, user_id: str) -> int:
+        """Points earned from verified logs, minus what was already spent on non-badge rewards."""
+        earned = c.execute("SELECT COALESCE(SUM(points), 0) FROM ledger WHERE user_id = ? AND type = 'earn' AND verification = 'verified'", (user_id,)).fetchone()[0]
+        spent = sum(r['cost'] for r in c.execute('SELECT reward_id, cost FROM redemptions WHERE user_id = ?', (user_id,))
+                    if self.rewards.get(r['reward_id'], {}).get('kind') != 'badge')
+        return earned - spent
+
     def _credit(self, c, sub) -> dict:
         """Turns an approved submission into counted items and points (one ledger row per submission, ever)."""
         entries = [e for e in json.loads(sub['entries_json']) if e['accepted'] > 0]
@@ -126,8 +133,8 @@ class Service:
         with self.db.tx() as c:
             same = c.execute('SELECT * FROM submissions WHERE user_id = ? AND idem_key = ?', (user['id'], key)).fetchone()
             if same:  # a retry of something already received: return the original outcome, change nothing
-                sent = [(e.get('material'), e.get('count')) for e in entries_in if isinstance(e, dict)]
-                stored = [(e['material'], e['count']) for e in json.loads(same['entries_json'])]
+                sent = [(str(e.get('material')), str(e.get('count'))) for e in entries_in if isinstance(e, dict)]
+                stored = [(str(e['material']), str(e['count'])) for e in json.loads(same['entries_json'])]
                 if same['kind'] != kind or same['station_id'] != station_id or sorted(sent) != sorted(stored):
                     raise ApiError(409, 'key_reused', 'That submission key was already used for different items.')
                 return self._view(same, replayed=True)
@@ -236,7 +243,8 @@ class Service:
 
     def redeem(self, user: dict, body: dict) -> dict:
         key = self._key(body)
-        reward = self.rewards.get(body.get('rewardId'))
+        rid_in = body.get('rewardId')
+        reward = self.rewards.get(rid_in) if isinstance(rid_in, str) else None
         if not reward:
             raise ApiError(404, 'unknown_reward', 'That reward doesn’t exist.')
         with self.db.tx() as c:
@@ -256,8 +264,16 @@ class Service:
             balance = self.balance(c, user['id'])
             if balance < reward['cost']:
                 raise ApiError(402, 'insufficient_points', 'Not enough points yet.')
+            if reward['kind'] != 'badge' and self.verified_spendable(c, user['id']) < reward['cost']:
+                # Real-world rewards are paid only with points earned from verified receipts, never self-reported ones.
+                raise ApiError(402, 'insufficient_verified_points', 'This reward is paid with points from verified recycling. Keep logging with a station receipt code to earn them.')
             rid, now = self._rid('r_'), self.now()
-            code = None if reward['kind'] == 'badge' else f"DEMO-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}"
+            if reward['kind'] == 'badge':
+                code = None
+            elif self.settings.mode == 'demo':
+                code = f"DEMO-{secrets.token_hex(2).upper()}-{secrets.token_hex(2).upper()}"
+            else:
+                code = 'RC-' + secrets.token_urlsafe(12)
             c.execute('INSERT INTO redemptions VALUES (?,?,?,?,?,?,?,?)', (rid, user['id'], key, reward['id'], reward['cost'], code, now, method))
             c.execute('INSERT INTO ledger VALUES (?,?,?,?,?,?,?,?,?)', (self._rid('l_'), user['id'], now, -reward['cost'], f"Redeemed: {reward['name']}", 'redeem', rid, None, None))
             return self._redemption_view(c.execute('SELECT * FROM redemptions WHERE id = ?', (rid,)).fetchone(), reward, balance=balance - reward['cost'])
@@ -319,6 +335,8 @@ class Service:
     def update_profile(self, user: dict, body: dict) -> dict:
         nick = body.get('nickname')
         opt = bool(body.get('leaderboardOptIn'))
+        if nick is not None and not isinstance(nick, str):
+            raise ApiError(400, 'bad_nickname', auth.nickname_error(''))
         if nick:
             err = auth.nickname_error(nick)
             if err:
@@ -326,7 +344,7 @@ class Service:
         if opt and not nick:
             raise ApiError(400, 'bad_nickname', 'Save a nickname first.')
         with self.db.tx() as c:
-            if nick and c.execute('SELECT 1 FROM users WHERE lower(nickname) = lower(?) AND id != ?', (nick, user['id'])).fetchone():
+            if nick and c.execute('SELECT 1 FROM users WHERE casefold(nickname) = casefold(?) AND id != ?', (nick, user['id'])).fetchone():
                 raise ApiError(409, 'nickname_taken', 'That nickname is taken. Try another.')
             c.execute('UPDATE users SET nickname = ?, leaderboard_opt_in = ? WHERE id = ?', (nick or None, int(opt), user['id']))
             return self.profile(dict(c.execute('SELECT * FROM users WHERE id = ?', (user['id'],)).fetchone()))

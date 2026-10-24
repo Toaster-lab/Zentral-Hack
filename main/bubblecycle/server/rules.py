@@ -32,7 +32,7 @@ def _is_int(n) -> bool:
 def evaluate_log(history: list, entries: list, now: int) -> dict:
     """Validate a batch of {material, count}. `history` rows: {ts, material, count, accepted, batch_id}
     covering everything that already counts or is waiting for review."""
-    clean = [e for e in entries if isinstance(e, dict) and e.get('material') and isinstance(e.get('count'), (int, float))
+    clean = [e for e in entries if isinstance(e, dict) and isinstance(e.get('material'), str) and e.get('material') and isinstance(e.get('count'), (int, float))
              and not isinstance(e.get('count'), bool) and e['count'] > 0]
     if not clean:
         return {'ok': False, 'code': 'no_items', 'error': 'Add at least one item to log.'}

@@ -3,6 +3,7 @@ transaction, which takes SQLite's write lock up front. Two requests can therefor
 read the same balance and both spend it."""
 import sqlite3
 import threading
+import unicodedata
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -13,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   nickname TEXT, leaderboard_opt_in INTEGER NOT NULL DEFAULT 0, is_demo INTEGER NOT NULL DEFAULT 0
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_nickname ON users(lower(nickname)) WHERE nickname IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS users_nickname_cf ON users(casefold(nickname)) WHERE nickname IS NOT NULL;
 CREATE TABLE IF NOT EXISTS credentials (
   id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), public_key_pem TEXT NOT NULL,
   alg INTEGER NOT NULL, sign_count INTEGER NOT NULL DEFAULT 0, transports TEXT NOT NULL DEFAULT '[]', created_at INTEGER NOT NULL
@@ -58,6 +60,11 @@ CREATE TABLE IF NOT EXISTS audit (id INTEGER PRIMARY KEY AUTOINCREMENT, ts INTEG
 """
 
 
+def casefold(s):
+    """Unicode-aware, case-insensitive nickname key (SQLite's own lower() only handles ASCII)."""
+    return unicodedata.normalize('NFKC', s).casefold() if isinstance(s, str) else None
+
+
 class Database:
     def __init__(self, path: str, mode: str):
         self.path = path
@@ -80,6 +87,7 @@ class Database:
         c = sqlite3.connect(self.path, isolation_level=None, check_same_thread=False, timeout=15)
         c.row_factory = sqlite3.Row
         c.execute('PRAGMA foreign_keys=ON')
+        c.create_function('casefold', 1, casefold, deterministic=True)
         if self.path != ':memory:':
             c.execute('PRAGMA journal_mode=WAL')
             c.execute('PRAGMA synchronous=NORMAL')

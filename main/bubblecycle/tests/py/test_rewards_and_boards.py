@@ -73,8 +73,13 @@ def test_vouchers_need_verified_items_not_just_points(live):
     assert code_of(live.redeem, p, 'voucher-cafe') == 'not_eligible'
     assert live.balance(p) == 400
     live.log(p, [E('cardboard', 5)], receiptCode=make_receipt('v1'))   # 5 verified items
+    # 435 points, but only 35 came from verified items: real rewards are paid with verified points only
+    assert code_of(live.redeem, p, 'voucher-cafe') == 'insufficient_verified_points'
+    for i in range(8):
+        live.log(p, [E('cardboard', 50)], receiptCode=make_receipt(f'v1-{i}'))
+        live.advance(days=1)
     out = live.redeem(p, 'voucher-cafe')
-    assert out['code'].startswith('DEMO-') and out['balance'] == 400 + 35 - 300
+    assert out['code'] and not out['code'].startswith('DEMO-') and out['cost'] == 300
 
 
 def test_concurrent_redemptions_cannot_overspend(tmp_path):

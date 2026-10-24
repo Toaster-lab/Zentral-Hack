@@ -25,6 +25,10 @@ PUBLIC_DIRS = {'css', 'js', 'vendor', 'icons'}
 MIME = {'.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.webmanifest': 'application/manifest+json',
         '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.html': 'text/html'}
 
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+       "img-src 'self' data: blob: https://tile.openstreetmap.org https://*.tile.openstreetmap.org; media-src 'self' blob:; "
+       "connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'")
+
 
 class RateLimiter:
     def __init__(self):
@@ -49,7 +53,12 @@ def make_handler(svc):
 
     class Handler(BaseHTTPRequestHandler):
         server_version = 'RecyclIt'
+        sys_version = ''                  # don't announce the Python version
         protocol_version = 'HTTP/1.1'
+        timeout = 15                      # seconds a connection may sit idle or send slowly before it is dropped
+
+        def version_string(self):
+            return self.server_version
 
         def log_message(self, fmt, *args):
             if '/vendor/' not in self.path and '/icons/' not in self.path:
@@ -62,7 +71,7 @@ def make_handler(svc):
             self.send_header('Content-Length', str(length))
             self.send_header('X-Content-Type-Options', 'nosniff')
             self.send_header('Referrer-Policy', 'same-origin')
-            self.send_header('Content-Security-Policy', "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
+            self.send_header('Content-Security-Policy', CSP)
             self.send_header('Permissions-Policy', 'camera=(self), geolocation=(self), publickey-credentials-get=(self), publickey-credentials-create=(self)')
             for k, v in (extra or {}).items():
                 self.send_header(k, v)
@@ -143,6 +152,9 @@ def make_handler(svc):
         def _dispatch(self, method):
             url = urlparse(self.path)
             try:
+                if self.headers.get('Transfer-Encoding'):  # bodies are read by Content-Length only; chunked ones would desync the stream
+                    self.close_connection = True
+                    raise ApiError(501, 'unsupported_encoding', 'Chunked requests aren’t supported.')
                 if method in ('POST', 'PUT'):
                     self._read_body()
                 if url.path.startswith('/api/'):
@@ -208,8 +220,9 @@ def make_handler(svc):
 
             # admin (reviewers): bearer token, never a user session
             if path.startswith('admin/'):
-                given = (self.headers.get('Authorization') or '').removeprefix('Bearer ').strip()
-                if not settings.admin_token or not hmac.compare_digest(given, settings.admin_token):
+                header = self.headers.get('Authorization') or ''
+                given = header[7:].strip() if header.startswith('Bearer ') else ''
+                if not settings.admin_token or not hmac.compare_digest(given.encode(), settings.admin_token.encode()):
                     raise ApiError(403, 'forbidden', 'Not allowed.')
                 if path == 'admin/queue' and method == 'GET':
                     return self._json(200, {'items': svc.review_queue()})
