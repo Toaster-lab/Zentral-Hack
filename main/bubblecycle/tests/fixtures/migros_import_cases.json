@@ -1,0 +1,110 @@
+{
+  "today": "2026-10-24",
+  "approved": ["90162909", "7610097135078", "7640127851166"],
+  "cases": [
+    {
+      "name": "accepts allowed fields of an approved product from a migros.ch source",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://www.migros.ch/example-export", "retrievedAt": "2026-10-20", "permission": "Written permission from the data owner, reference X"},
+        "records": {"7610097135078": {"fields": {"priceChf": 1.2, "diet": "vegan", "allergens": [], "mayContain": ["nuts"], "ingredients": "Water.", "photo": "https://image.migros.ch/x.jpg"}}}
+      },
+      "expect": {"7610097135078": ["allergens", "diet", "ingredients", "mayContain", "photo", "priceChf"]}
+    },
+    {
+      "name": "ignores barcodes outside the three approved drinks",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://www.migros.ch/example-export", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"7610097135079": {"fields": {"priceChf": 1.0}}, "90162909": {"fields": {"priceChf": 2.2}}}
+      },
+      "expect": {"90162909": ["priceChf"]}
+    },
+    {
+      "name": "refuses a source that is not a migros.ch address",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://example.com/migros", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"90162909": {"fields": {"priceChf": 2.2}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "refuses a look-alike host",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://migros.ch.evil.example/export", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"90162909": {"fields": {"priceChf": 2.2}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "refuses plain http",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "http://www.migros.ch/export", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"90162909": {"fields": {"priceChf": 2.2}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "refuses a retrieval date in the future",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://www.migros.ch/export", "retrievedAt": "2026-12-01", "permission": "ok"},
+        "records": {"90162909": {"fields": {"priceChf": 2.2}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "refuses an export without a stated permission",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://www.migros.ch/export", "retrievedAt": "2026-10-20", "permission": " "},
+        "records": {"90162909": {"fields": {"priceChf": 2.2}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "refuses a source that does not name Migros",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Somebody else", "url": "https://www.migros.ch/export", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"90162909": {"fields": {"priceChf": 2.2}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "never accepts stock or unknown fields",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://www.migros.ch/export", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"90162909": {"fields": {"stock": "in_stock", "available": true, "name": "Renamed", "priceChf": 2.2}}}
+      },
+      "expect": {"90162909": ["priceChf"]}
+    },
+    {
+      "name": "drops badly typed or out-of-range fields",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://www.migros.ch/export", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"90162909": {"fields": {"priceChf": "2.20", "diet": "keto", "allergens": ["lactose"], "mayContain": "nuts", "ingredients": "", "photo": "https://evil.example/x.png"}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "rejects a photo address that carries credentials or another host",
+      "import": {
+        "schema": 1,
+        "source": {"name": "Migros", "url": "https://www.migros.ch/export", "retrievedAt": "2026-10-20", "permission": "ok"},
+        "records": {"90162909": {"fields": {"photo": "https://user:pw@image.migros.ch/x.jpg", "priceChf": 0}}}
+      },
+      "expect": {}
+    },
+    {
+      "name": "an empty import changes nothing",
+      "import": {"schema": 1, "source": null, "records": {}},
+      "expect": {}
+    }
+  ]
+}

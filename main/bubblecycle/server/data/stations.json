@@ -1,0 +1,14 @@
+[
+ {
+  "id": "rotkreuz-pet-aluminium-point",
+  "name": "PET and aluminium recycling point",
+  "lat": 47.143376,
+  "lng": 8.432881,
+  "materials": [
+   "pet",
+   "aluminium"
+  ],
+  "source": "team",
+  "sample": false
+ }
+]
